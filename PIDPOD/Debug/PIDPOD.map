@@ -1,0 +1,211 @@
+******************************************************************************
+                  TI ARM Linker PC v5.1.6                      
+******************************************************************************
+>> Linked Wed Nov 26 17:34:32 2014
+
+OUTPUT FILE NAME:   <PIDPOD.out>
+ENTRY POINT SYMBOL: "_c_int00"  address: 000004d4
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+----------------------  --------  ---------  --------  --------  ----  --------
+  RAM                   00000000   ffffffff  00000e70  fffff18f  RWIX
+
+
+SECTION ALLOCATION MAP
+
+ output                                  attributes/
+section   page    origin      length       input sections
+--------  ----  ----------  ----------   ----------------
+.text      0    00000000    000005b8     
+                  00000000    000001c4     timer_if.obj (.text)
+                  000001c4    00000180     rtsv4_A_be_tiarm9.lib : memcpy32.obj (.text)
+                  00000344    000000a8                           : auto_init.obj (.text)
+                  000003ec    0000008c                           : exit.obj (.text)
+                  00000478    0000005c                           : cpy_tbl.obj (.text)
+                  000004d4    00000044                           : boot.obj (.text)
+                  00000518    0000003c     main.obj (.text)
+                  00000554    00000024     rtsv4_A_be_tiarm9.lib : _lock.obj (.text)
+                  00000578    00000020                           : args_main.obj (.text)
+                  00000598    00000020                           : icall32.obj (.text)
+
+.data      0    00000000    00000000     UNINITIALIZED
+
+.pinit     0    00000000    00000000     UNINITIALIZED
+
+.cinit     0    000005b8    0000007c     
+                  000005b8    00000040     gpio_if.obj (.cinit)
+                  000005f8    00000010     rtsv4_A_be_tiarm9.lib : _lock.obj (.cinit)
+                  00000608    00000010                           : exit.obj (.cinit)
+                  00000618    0000000c                           : boot.obj (.cinit)
+                  00000624    0000000c                           : stkdepth_vars.obj (.cinit)
+                  00000630    00000004     --HOLE-- [fill = 0]
+
+.bss       0    00000634    0000003c     UNINITIALIZED
+                  00000634    00000023     gpio_if.obj (.bss)
+                  00000657    00000001     --HOLE--
+                  00000658    00000008     rtsv4_A_be_tiarm9.lib : _lock.obj (.bss)
+                  00000660    00000008                           : exit.obj (.bss)
+                  00000668    00000004                           : boot.obj (.bss)
+                  0000066c    00000004                           : stkdepth_vars.obj (.bss)
+
+.stack     0    00000670    00000800     UNINITIALIZED
+                  00000670    00000800     --HOLE--
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+address    name
+--------   ----
+00000634   .bss
+00000000   .data
+00000000   .text
+000003ec   C$$EXIT
+000001c4   C_MEMCPY
+00000598   IND_CALL
+UNDEFED    _PRCMPeripheralClkEnable
+UNDEFED    _PRCMPeripheralReset
+00000518   _SetupTimer
+UNDEFED    _TimerConfigure
+UNDEFED    _TimerDisable
+UNDEFED    _TimerEnable
+UNDEFED    _TimerIntClear
+UNDEFED    _TimerIntDisable
+UNDEFED    _TimerIntEnable
+UNDEFED    _TimerIntRegister
+UNDEFED    _TimerIntStatus
+UNDEFED    _TimerIntUnregister
+UNDEFED    _TimerLoadSet
+UNDEFED    _TimerPrescaleSet
+UNDEFED    _TimerValueGet
+00000138   _Timer_IF_DeInit
+0000018c   _Timer_IF_GetCount
+00000000   _Timer_IF_Init
+00000050   _Timer_IF_IntSetup
+000000b8   _Timer_IF_InterruptClear
+00000164   _Timer_IF_ReLoad
+000000e4   _Timer_IF_Start
+00000118   _Timer_IF_Stop
+00000e70   __STACK_END
+00000800   __STACK_SIZE
+00000001   __TI_args_main
+00000344   __TI_auto_init
+00000660   ___TI_cleanup_ptr
+00000664   ___TI_dtors_ptr
+ffffffff   ___binit__
+00000634   ___bss__
+ffffffff   ___c_args__
+000005b8   ___cinit__
+00000000   ___data__
+00000000   ___edata__
+00000670   ___end__
+000005b8   ___etext__
+ffffffff   ___pinit__
+00000000   ___text__
+00000578   __args_main
+00000658   __lock
+0000056c   __nop
+00000560   __register_lock
+00000554   __register_unlock
+00000670   __stack
+0000065c   __unlock
+000003f4   _abort
+000004d4   _c_int00
+00000478   _copy_in
+00000400   _exit
+00000654   _g_ucLED1Pin
+00000655   _g_ucLED2Pin
+00000656   _g_ucLED3Pin
+00000648   _g_uiLED1Port
+0000064c   _g_uiLED2Port
+00000650   _g_uiLED3Port
+00000540   _main
+0000066c   _main_func_sp
+00000668   _stkchk_called
+ffffffff   binit
+000005b8   cinit
+00000000   edata
+00000670   end
+000005b8   etext
+ffffffff   pinit
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+address    name
+--------   ----
+00000000   .data
+00000000   .text
+00000000   _Timer_IF_Init
+00000000   ___data__
+00000000   ___edata__
+00000000   ___text__
+00000000   edata
+00000001   __TI_args_main
+00000050   _Timer_IF_IntSetup
+000000b8   _Timer_IF_InterruptClear
+000000e4   _Timer_IF_Start
+00000118   _Timer_IF_Stop
+00000138   _Timer_IF_DeInit
+00000164   _Timer_IF_ReLoad
+0000018c   _Timer_IF_GetCount
+000001c4   C_MEMCPY
+00000344   __TI_auto_init
+000003ec   C$$EXIT
+000003f4   _abort
+00000400   _exit
+00000478   _copy_in
+000004d4   _c_int00
+00000518   _SetupTimer
+00000540   _main
+00000554   __register_unlock
+00000560   __register_lock
+0000056c   __nop
+00000578   __args_main
+00000598   IND_CALL
+000005b8   ___cinit__
+000005b8   ___etext__
+000005b8   cinit
+000005b8   etext
+00000634   .bss
+00000634   ___bss__
+00000648   _g_uiLED1Port
+0000064c   _g_uiLED2Port
+00000650   _g_uiLED3Port
+00000654   _g_ucLED1Pin
+00000655   _g_ucLED2Pin
+00000656   _g_ucLED3Pin
+00000658   __lock
+0000065c   __unlock
+00000660   ___TI_cleanup_ptr
+00000664   ___TI_dtors_ptr
+00000668   _stkchk_called
+0000066c   _main_func_sp
+00000670   ___end__
+00000670   __stack
+00000670   end
+00000800   __STACK_SIZE
+00000e70   __STACK_END
+ffffffff   ___binit__
+ffffffff   ___c_args__
+ffffffff   ___pinit__
+ffffffff   binit
+ffffffff   pinit
+UNDEFED    _PRCMPeripheralClkEnable
+UNDEFED    _PRCMPeripheralReset
+UNDEFED    _TimerConfigure
+UNDEFED    _TimerDisable
+UNDEFED    _TimerEnable
+UNDEFED    _TimerIntClear
+UNDEFED    _TimerIntDisable
+UNDEFED    _TimerIntEnable
+UNDEFED    _TimerIntRegister
+UNDEFED    _TimerIntStatus
+UNDEFED    _TimerIntUnregister
+UNDEFED    _TimerLoadSet
+UNDEFED    _TimerPrescaleSet
+UNDEFED    _TimerValueGet
+
+[71 symbols]

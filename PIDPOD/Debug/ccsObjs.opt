@@ -1,0 +1,1 @@
+"./gpio_if.obj" "./main.obj" "./startup_ccs.obj" "./timer_if.obj" "../cc3200v1p32.cmd" -l"libc.a" 
