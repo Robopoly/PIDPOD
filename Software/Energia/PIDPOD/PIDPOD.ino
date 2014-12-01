@@ -1,25 +1,20 @@
 /*
- Name:        PIDPOD
- Date:        2014-11-28
- Version:     1.0
- Description: Segway-type self-balancing robot sketch based on the CC3200 development board.
-*/
+ * Name:        PIDPOD
+ * Date:        2014-11-28
+ * Version:     1.0
+ * Description: Segway-type self-balancing robot sketch based on the CC3200 development board.
+ */
 
-// Includes for PWM signal generation
-#include "Energia.h"
+#include <inc/hw_types.h>
 #include <driverlib/prcm.h>
-#include <driverlib/rom_map.h>
-#include <driverlib/pin.h>
 #include <driverlib/timer.h>
-#include <driverlib/adc.h>
-#include <inc/hw_memmap.h>
-#include <inc/hw_gprcm.h>
-#include <inc/hw_adc.h>
+//#include <driverlib/adc.h>
 
 // Includes for BMA222 accelerometer communication
 #include <Wire.h>
 #include <BMA222.h>
 
+// PID coefficients
 #define UPRIGHT_VALUE_ACCELEROMETER 0
 #define KP 1.
 #define KI 0.
@@ -27,55 +22,106 @@
 
 BMA222 accelerometer;
 
+// Pin definitions
+#define LED RED_LED
+#define AIN1	30
+#define AIN2	28
+#define BIN1	27
+#define BIN2	7
+
 void motorSetup()
 {
-  /*uint32_t analog_res = 1023 * 1000;
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
   
-  uint32_t load = (F_CPU / 20000) * 1000;
-  uint32_t match = load / (1023 / 255);
+  // Enable timer A peripheral
+  MAP_PRCMPeripheralClkEnable(PRCM_TIMERA0, PRCM_RUN_MODE_CLK);
+  MAP_PRCMPeripheralReset(PRCM_TIMERA0);
+  
+  // Split channels and configure for periodic interrupts
+  MAP_TimerConfigure(TIMERA0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC | TIMER_CFG_B_PERIODIC);
 
-  match = match;
-  load = load / 1000;
-  
-  uint16_t prescaler = load >> 16;
-  uint16_t prescaler_match = match >> 16;
-  
-  MAP_PRCMPeripheralClkEnable(PRCM_TIMERA0 + (timer/2), PRCM_RUN_MODE_CLK);
+  // Set compare interrupt
+  MAP_TimerIntEnable(TIMERA0_BASE, TIMER_TIMA_MATCH);
+  MAP_TimerIntEnable(TIMERA0_BASE, TIMER_TIMB_MATCH);
 
-  uint32_t base = TIMERA0_BASE + ((timer/2) << 12);
-  
-  MAP_TimerConfigure(base, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM | TIMER_CFG_B_PWM);
-  uint16_t timerab = timer % 2 ? TIMER_B : TIMER_A;
-  
-  MAP_TimerPrescaleSet(base, timerab, prescaler);
-  MAP_TimerPrescaleMatchSet(base, timerab, prescaler_match);
-  MAP_TimerControlLevel(base, timerab, 1);
-  MAP_TimerLoadSet(base, timerab, load);
-  MAP_TimerMatchSet(base, timerab, match);
-  MAP_TimerEnable(base, timerab);*/
+  // Configure compare interrupt, start with 0 speed
+  MAP_TimerMatchSet(TIMERA0_BASE, TIMER_A, 4000);
+  MAP_TimerMatchSet(TIMERA0_BASE, TIMER_B, 4000);
+
+  // Set timeout interrupt
+  MAP_TimerIntRegister(TIMERA0_BASE, TIMER_A, TimerBaseIntHandlerA);
+  MAP_TimerIntRegister(TIMERA0_BASE, TIMER_B, TimerBaseIntHandlerB);
+  MAP_TimerIntEnable(TIMERA0_BASE, TIMER_TIMA_TIMEOUT | TIMER_TIMB_TIMEOUT);
+
+  // Turn on timers
+  MAP_TimerLoadSet(TIMERA0_BASE, TIMER_A, 4000);
+  MAP_TimerLoadSet(TIMERA0_BASE, TIMER_B, 4000);
+ 
+  MAP_TimerEnable(TIMERA0_BASE, TIMER_A);
+  MAP_TimerEnable(TIMERA0_BASE, TIMER_B);
 }
 
-void setSpeed(int8_t speedLeft, int8_t speedRight)
+void TimerBaseIntHandlerA(void)
 {
-  
+  if(TimerIntStatus(TIMERA0_BASE, true) & 0x10)
+  {
+    // Match interrupt
+    TimerIntClear(TIMERA0_BASE, 0x10);
+    digitalWrite(AIN1, 0);
+    digitalWrite(AIN2, 0);
+  }
+  else
+  {
+    // Overflow interrupt
+    TimerIntClear(TIMERA0_BASE, 0x1);
+    digitalWrite(AIN1, 0);
+    digitalWrite(AIN2, 1);
+  }
+}
+
+void TimerBaseIntHandlerB(void)
+{
+  if(TimerIntStatus(TIMERA0_BASE, true) & 0x800)
+  {
+    // Match interrupt
+    TimerIntClear(TIMERA0_BASE, 0x800);
+    digitalWrite(BIN1, 0);
+    digitalWrite(BIN2, 0);
+  }
+  else
+  {
+    // Overflow interrupt
+    TimerIntClear(TIMERA0_BASE, 0x100);
+    digitalWrite(BIN1, 0);
+    digitalWrite(BIN2, 1);
+  }
+}
+
+void setSpeed(uint16_t speedLeft, uint16_t speedRight)
+{
+  TimerMatchSet(TIMERA0_BASE, TIMER_A, speedLeft);
+  TimerMatchSet(TIMERA0_BASE, TIMER_B, speedRight);
 }
 
 void setup()
 {
   motorSetup();
   
+  pinMode(LED, OUTPUT);
+  
   Serial.begin(115200);
   
   accelerometer.begin();
   uint8_t chipID = accelerometer.chipID();
-  Serial.print("chipID: ");
-  Serial.println(chipID);
 }
 
 void loop()
 {
   static int8_t error;
-  static int8_t speed;
+  /*static int8_t speed;
   static int8_t integral = 0;
   static int8_t derivate = 0;
   
@@ -95,6 +141,15 @@ void loop()
   
   setSpeed(speed, speed);
 
-  delay(10);
+  delay(10);*/
+  for(uint16_t i = 0; i < 4000; i += 100)
+  {
+    error = accelerometer.readXData();
+    Serial.println(i);
+    Serial.println(error);
+    setSpeed(error * 10, error * 10);
+    delay(500);
+  }
+  //digitalWrite(LED, !digitalRead(LED));
 }
 
