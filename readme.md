@@ -66,10 +66,13 @@ For software development we had to start by developing the PWM signal generation
 
 ## Issues
 
+* Stability: the PIDPOD isn't very stable as we had to hand-tune the PID coefficients because of lack of time.
+* Program: the program has some non-identified erratic behaviours sometimes, we did not investigate any further as we had something that somehow worked just before the deadline.
 * Memory: the CC3200 had some example programs stored in the flash memory limiting the user program size to less than 50Kb, the program needed more and thus we had to find a way to use the full theoretical 256Kb. For this there was a tool to format the memory (UniFlash), but no matter what we tried the tool refused to format the chip. In the end we found out that we needed to connect the SOP2 jumpter, exactly the contrary to the formatting instructions.
 * Reset: the reset button on our CC3200 development board didn't work (the button did not short when pushed), we resorted to shorting it manually with a wire when we needed a reset.
 * Current-control: reading the analog values for curren-control did not work as expected so we abandoned this idea.
 * Camera: there was no way to interface the camera and have all the other functionalities we needed on the custom booster-pack as it took up too many pins, so we didn't put the camera footprint on it.
+* FTDI: at one point the CC3200 decided to make the PC load new drivers and enumerated as 2 serial ports, the CC3200 became impossible to reprogram via Code Composer or Energia, it was still flashable via the UniFlash tool. We fixed this issue by reflashing the FTDI chip.
 
 # Credits
 
