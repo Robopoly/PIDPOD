@@ -11,13 +11,14 @@
 // bias compensation parameters
 // samples to take before changing the upright position
 #define NUMBER_SAMPLES 100
-#define I_ARW 300
+// maximum allowed bias for the upright position
+#define I_ARW 350.
 // initial uproght position
 #define UPRIGHT_POSITION 4500
 // upright position offset bias
 #define UPRIGHT_OFFSET 10
-// maximum allowed bias for the upright position
-#define MAX_BIAS 500
+
+
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -53,7 +54,7 @@ float ki = 10;
 float kd = .5;
 
 //bia compensation
-float b_ki = 0.1;
+float bia_ki = 0.1;
 
 int16_t speed = 0;
 
@@ -98,7 +99,7 @@ void setup()
   #endif
   // --------- END WIFI
   
-  digitalWrite(SWAG_LED, HIGH);
+  //digitalWrite(SWAG_LED, HIGH);
 
   #ifdef ENABLE_MOTORS
   motorSetup();
@@ -128,6 +129,8 @@ void setup()
   
   // Setup done
   digitalWrite(LED, HIGH);
+  delay(100);
+  digitalWrite(LED, LOW);
 }
 
 void loop()
@@ -173,7 +176,7 @@ void loop()
   wifi();
   #endif
   
-  //biasCompensation();
+  biasCompensation();
   
   delay(8);
 }
@@ -182,12 +185,15 @@ void biasCompensation()
 {
   static uint8_t mem = 0;
   static int16_t memory[NUMBER_SAMPLES] = {0};
-  uint16_t speed_sum = 0;
+  int16_t speed_sum = 0;
   
   memory[mem] = speed;
-    
+  if(memory[mem] > 100)
+    memory[mem] = 100; 
+  if(memory[mem] < -100)
+    memory[mem] = -100;  
   mem++;
-  if(mem > NUMBER_SAMPLES)
+  if(mem >= NUMBER_SAMPLES)
     mem = 0;
   
   /* Sliding average */
@@ -197,15 +203,23 @@ void biasCompensation()
     
   /* Set setpoint */
   /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
-  upright_value_accelerometer += (speed_sum/NUMBER_SAMPLES) * bia_ki;
+  upright_value_accelerometer += ((float)speed_sum/NUMBER_SAMPLES) * bia_ki;
   
   /* pseudo ARW */
   if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
+  {
+    digitalWrite(SWAG_LED, HIGH);
     upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
-    
-  if(upright_value_accelerometer < upright_value_accelerometer -I_ARW)  
-    upright_value_accelerometer = upright_value_accelerometer -I_ARW;
-    
+  }
+  else
+    digitalWrite(SWAG_LED, LOW);
+  if(upright_value_accelerometer < upright_value_accelerometer_default -I_ARW) 
+  { 
+    upright_value_accelerometer = upright_value_accelerometer_default -I_ARW;
+     digitalWrite(LED, HIGH);
+  }
+  else
+    digitalWrite(LED, LOW);
 }
 
 void wifi()
