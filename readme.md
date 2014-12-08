@@ -52,7 +52,7 @@ For the power it uses 4 AA rechargeable batteries (4.8V total), this is partly b
 
 The chassis was 3D printed on an Ultimaker 2, it's a single piece with full of holes to make the structure lighter. It holds together the electronics, motors and the battery-pack.
 
-At first the battery pack was on top of the chassis for accessibility, but the Tamyia motors were not powerful or fast enough to stabilise the system so the 
+At first the battery pack was on top of the chassis for accessibility, but the Tamyia motors were not powerful or fast enough to stabilise the system so the battery pack was lowered to the wheel axis level, the system performed much better and the motors were definately good enough for a gyropod in this configuration.
 
 ## Electronics
 
