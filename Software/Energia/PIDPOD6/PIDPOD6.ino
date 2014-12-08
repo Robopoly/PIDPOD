@@ -7,7 +7,9 @@
 
 #define ENABLE_MOTORS
 //#define ENABLE_WIFI
-
+//Sensors conversion factors
+#define ACC_RAW2MPS2 0.001
+#define GYRO_RAW2RADPS 0.005
 // bias compensation parameters
 // samples to take before changing the upright position
 #define NUMBER_SAMPLES 100
@@ -53,7 +55,7 @@ float ki = 10;
 float kd = .5;
 
 //bia compensation
-float b_ki = 0.1;
+float bia_ki = 0.1;
 
 int16_t speed = 0;
 
@@ -135,8 +137,8 @@ void loop()
   static uint32_t lastTime = micros();
   static uint32_t dt = micros();
   
-  acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / 1000;
-  gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / 200;
+  acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) * ACC_RAW2MPS2;
+  gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
   dt = micros() - lastTime;
   
   angle = (angle + gyro_angle * dt / 1000000) * 0.98 + (acc_reading * 0.02);
