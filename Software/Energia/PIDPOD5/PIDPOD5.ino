@@ -6,7 +6,7 @@
  */
 
 #define ENABLE_MOTORS
-//#define ENABLE_WIFI
+#define ENABLE_WIFI
 
 // bias compensation parameters
 // samples to take before changing the upright position
@@ -174,11 +174,11 @@ void loop()
   }
   #endif
   
+  biasCompensation();
+  
   #ifdef ENABLE_WIFI
   wifi();
   #endif
-  
-  biasCompensation();
   
   delay(8);
 }
