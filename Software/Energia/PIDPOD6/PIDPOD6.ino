@@ -15,7 +15,7 @@
 #define NUMBER_SAMPLES 100
 //Controllers parameters
 #define I_ARW 0.2
-#define PID_ARW 10
+#define PID_ARW 3
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -125,6 +125,7 @@ void setup()
   // average
   gyro_offset /= 16;
   angle_stable_default /= 16;
+  angle_stable = angle_stable_default;
   // Setup done
   digitalWrite(LED, HIGH);
 }
@@ -143,6 +144,7 @@ void loop()
   lastTime = micros();
   
   angle = (angle + gyro_x * dt / 1000000) * 0.98 + atan2(-acc_z, acc_y) * 0.02;
+  angle_target = angle_stable;
   float error = angle_target - angle;
   
   integral = integral + error;
@@ -157,13 +159,13 @@ void loop()
   }
   
   
-  speed = angle * kp + integral * ki + gyro_x * kd;
-  biasCompensation();
+  speed = error * kp + integral * ki + gyro_x * kd;
+  //biasCompensation();
   // Apply motor speeds
   #ifdef ENABLE_MOTORS
   if(digitalRead(DIP4))
   {
-    setSpeed(speed, speed);
+    setSpeed(-speed, -speed);
   }
   else
   {
