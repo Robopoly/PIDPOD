@@ -8,18 +8,14 @@
 #define ENABLE_MOTORS
 //#define ENABLE_WIFI
 //Sensors conversion factors
-#define ACC_RAW2MPS2 0.001
-#define GYRO_RAW2RADPS 0.005
+#define ACC_RAW2MPS2 9.81/16384
+#define GYRO_RAW2RADPS 3.14/180/131
 // bias compensation parameters
 // samples to take before changing the upright position
 #define NUMBER_SAMPLES 100
-#define I_ARW 300
-// initial uproght position
-#define UPRIGHT_POSITION 4500
-// upright position offset bias
-#define UPRIGHT_OFFSET 10
-// maximum allowed bias for the upright position
-#define MAX_BIAS 500
+//Controllers parameters
+#define I_ARW 0.2
+#define PID_ARW 10
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -38,26 +34,25 @@ WiFiServer server(80);
 float integral = 0;
 float derivate = 0;
 
-float acc_reading = 0;
-float gyro_angle = 0;
+float acc_z = 0;
+float acc_y = 0;
+float gyro_x = 0;
 float gyro_offset = 0;
 float angle = 0;
-float gyro_integration = 0;
-float angle_offset = 0;
-float angle_old = 0;
-float angle_real = 0;
+float angle_stable = 0;
+float angle_stable_default = 0;
+float angle_target = 0;
 float distance = 0;
-float upright_value_accelerometer = UPRIGHT_POSITION;
-float upright_value_accelerometer_default;
 
-float kp = 10;
+float kp = 20;
 float ki = 10;
-float kd = .5;
+float kd = 2;
 
 //bia compensation
-float bia_ki = 0.1;
+float bia_ki = -0.25;
 
 int16_t speed = 0;
+int16_t speed_target = 0;
 
 // Pin definitions
 #define LED RED_LED
@@ -114,20 +109,22 @@ void setup()
   
   MPU9150_init();
   
-  // Find accelerometer and gyroscope offset
-  float accelerometer = 0;
+  
+  // gyroscope offset
+  
   gyro_offset = 0;
+  angle_stable_default = 0;
   uint8_t i;
   for(i = 0; i < 16; i++)
   {
-    accelerometer += MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
     gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+    acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
+    acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
+    angle_stable_default += atan2(-acc_z, acc_y);
   }
   // average
-  upright_value_accelerometer = accelerometer/16;
-  upright_value_accelerometer_default = upright_value_accelerometer;
   gyro_offset /= 16;
-  
+  angle_stable_default /= 16;
   // Setup done
   digitalWrite(LED, HIGH);
 }
@@ -137,28 +134,31 @@ void loop()
   static uint32_t lastTime = micros();
   static uint32_t dt = micros();
   
-  acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) * ACC_RAW2MPS2;
-  gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
+  acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
+  acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
+  
+  gyro_x = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
+  
   dt = micros() - lastTime;
-  
-  angle = (angle + gyro_angle * dt / 1000000) * 0.98 + (acc_reading * 0.02);
-  
-  integral = integral + angle * .1;
-  // ARW
-  if(integral > 10)
-  {
-    integral = 10;
-  }
-  else if(integral < -10)
-  {
-    integral = -10;
-  }
-  
   lastTime = micros();
   
-  //speed = angle * 10 + gyro_angle * 0.5 + integral * 10;
-  speed = angle * kp + integral * ki + gyro_angle * kd;
+  angle = (angle + gyro_x * dt / 1000000) * 0.98 + atan2(-acc_z, acc_y) * 0.02;
+  float error = angle_target - angle;
   
+  integral = integral + error;
+  // ARW
+  if(integral > PID_ARW)
+  {
+    integral = PID_ARW;
+  }
+  else if(integral < -PID_ARW)
+  {
+    integral = -PID_ARW;
+  }
+  
+  
+  speed = angle * kp + integral * ki + gyro_x * kd;
+  biasCompensation();
   // Apply motor speeds
   #ifdef ENABLE_MOTORS
   if(digitalRead(DIP4))
@@ -175,7 +175,7 @@ void loop()
   wifi();
   #endif
   
-  //biasCompensation();
+  
   
   delay(8);
 }
@@ -199,14 +199,14 @@ void biasCompensation()
     
   /* Set setpoint */
   /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
-  upright_value_accelerometer += (speed_sum/NUMBER_SAMPLES) * bia_ki;
+  angle_stable += ((float)speed_target - ((float)speed_sum/NUMBER_SAMPLES)) * bia_ki;
   
   /* pseudo ARW */
-  if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
-    upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
+  if(angle_stable > angle_stable_default + I_ARW)
+    angle_stable = angle_stable_default + I_ARW;
     
-  if(upright_value_accelerometer < upright_value_accelerometer -I_ARW)  
-    upright_value_accelerometer = upright_value_accelerometer -I_ARW;
+  if(angle_stable < angle_stable_default -I_ARW)  
+    angle_stable = angle_stable_default -I_ARW;
     
 }
 
@@ -254,7 +254,7 @@ void wifi()
           client.print("<!DOCTYPE HTML><html><script>");
           client.print("function drag(field,value){document.getElementById(field).innerHTML=value/100;}function sendValues(){var fields=['JP','JI','JD'];for(i=0;i<3;i++){set(fields[i],document.getElementById(fields[i]).value);}}function set(field,value){var xmlhttp = new XMLHttpRequest();xmlhttp.open(\"GET\",\"?\"+field+\"=\"+(value<1000?'0':'')+(value<100?'0':'')+(value<10?'0':'')+value,true);xmlhttp.send(null);}</script>");
           client.print("Upright position: ");
-          client.print(upright_value_accelerometer);
+          client.print(angle_stable);
           client.print("<br />Set values: <input type=\"button\" value=\"Set\" onclick=\"sendValues();\" /><br />");
           client.print("KP: <span id=\"KP\">10</span> <input style=\"width:100%\" type=\"range\" name=\"kp\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JP\" oninput=\"drag('KP',this.value)\" /><br />KI: <span id=\"KI\">10</span> <input style=\"width:100%\" type=\"range\" name=\"ki\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JI\" oninput=\"drag('KI',this.value)\" /><br />KD: <span id=\"KD\">0.5</span> <input style=\"width:100%\" type=\"range\" name=\"kd\" min=\"0\" max=\"2000\" value=\"50\" step=\"1\" id=\"JD\" oninput=\"drag('KD',this.value)\" />");
           client.println("</html>");
