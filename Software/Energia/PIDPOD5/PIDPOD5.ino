@@ -6,15 +6,15 @@
  */
 
 #define ENABLE_MOTORS
-//#define ENABLE_WIFI
+#define ENABLE_WIFI
 
 // bias compensation parameters
 // samples to take before changing the upright position
 #define NUMBER_SAMPLES 100
 // maximum allowed bias for the upright position
-#define I_ARW 350.
+#define I_ARW 50.
 // initial uproght position
-#define UPRIGHT_POSITION 4500
+#define UPRIGHT_POSITION 5270
 // upright position offset bias
 #define UPRIGHT_OFFSET 10
 
@@ -53,8 +53,12 @@ float kp = 10;
 float ki = 10;
 float kd = .5;
 
+uint32_t lastTime = micros();
+uint32_t dt = micros();
+  
+
 //bia compensation
-float bia_ki = 0.05;
+float bia_ki = 0.02;
 
 int16_t speed = 0;
 
@@ -123,7 +127,7 @@ void setup()
     gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
   }
   // average
-  upright_value_accelerometer = accelerometer/16;
+  //upright_value_accelerometer = accelerometer/16;
   upright_value_accelerometer_default = upright_value_accelerometer;
   gyro_offset /= 16;
   
@@ -135,9 +139,7 @@ void setup()
 
 void loop()
 {
-  static uint32_t lastTime = micros();
-  static uint32_t dt = micros();
-  
+
   acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / 1000;
   gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / 200;
   dt = micros() - lastTime;
@@ -186,7 +188,6 @@ void biasCompensation()
   static uint8_t mem = 0;
   static int16_t memory[NUMBER_SAMPLES] = {0};
   int16_t speed_sum = 0;
-  
   memory[mem] = speed;
   if(memory[mem] > 100)
     memory[mem] = 100; 
@@ -320,6 +321,7 @@ void wifi()
     // close the connection:
     client.stop();
     //Serial.println("client disonnected");
+    lastTime = micros();
   }
 }
 
