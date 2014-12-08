@@ -58,16 +58,24 @@ At first the battery pack was on top of the chassis for accessibility, but the T
 
 The additional electonic components on the custom booster pack are: an H-bridge (DRV8833), a 9-axis IMU (MPU9150), a buzzer and a 4-way DIP-switch and various connectors.
 
-The CC3200 development board has an accelerometer ([BMA222](http://www.bosch-sensortec.com/en/homepage/products_3/3_axis_sensors/acceleration_sensors/bma222_1/bma222)), but we found out quickly that for a good regulation a gyroscope was needed, we never succeeded in achieving stability with only an accelerometer, thus the MPU9150 on the booster pack.
+The CC3200 development board has an accelerometer ([BMA222](http://www.bosch-sensortec.com/en/homepage/products_3/3_axis_sensors/acceleration_sensors/bma222_1/bma222)), but we found out quickly that for a good regulation a gyroscope was needed, we never succeeded in achieving stability with only an accelerometer, thus the MPU9150 on the booster pack. The MPU9150 comes in an LGA package impossible to solder by hand, thanks to the [EPFL ACI workshop](http://sti-ateliers.epfl.ch/page-19942.html), and more specifically André Badertscher, we were able solder this part with ease.
+
+The custom bootster-pack was made possible by the ACI workshop and generously manufactured thanks to Manuel Leitos, they were very kind to produce a couple PCBs for us in a very short time allowing us to make this project.
 
 ## Software
 
 For software development we had to start by developing the PWM signal generation for motor control, we used interrupt vectors instead of hardware PWM of the CC3200 chip, in retrospective the overhead that the pin settings take is quite annoying and in an eventual next version hardware PWM should be implemented.
 
+We found out quite fast that the on-board BMA222 accelerometer was not enough to stabilise the system, fortunately we had prepared the footprint for the MPU9150 9-axis IMU that had a 3-axis gyroscope.
+
+By the end of the project we had a Wi-Fi enabled gyropod on which we could set the PID controller coefficients using sliders via a server running on the CC3200.
+
 ## Issues
 
 * Stability: the PIDPOD isn't very stable as we had to hand-tune the PID coefficients because of lack of time.
 * Program: the program has some non-identified erratic behaviours sometimes, we did not investigate any further as we had something that somehow worked just before the deadline.
+* I2C: when the motors pulled a lot of current the I2C communication stopped with the BMC222, it turns out the traces going to the unsoldered MPU9150 were somehow affecting the bus, we brutally cut the traces and everything worked from the onwards. We used the MPU9150 IMU later on and we did not have this issue.
+* Wi-Fi: sometimes when the motors pull a lot of current the Wi-Fi communication stops.
 * Memory: the CC3200 had some example programs stored in the flash memory limiting the user program size to less than 50Kb, the program needed more and thus we had to find a way to use the full theoretical 256Kb. For this there was a tool to format the memory (UniFlash), but no matter what we tried the tool refused to format the chip. In the end we found out that we needed to connect the SOP2 jumpter, exactly the contrary to the formatting instructions.
 * Reset: the reset button on our CC3200 development board didn't work (the button did not short when pushed), we resorted to shorting it manually with a wire when we needed a reset.
 * Current-control: reading the analog values for curren-control did not work as expected so we abandoned this idea.
@@ -77,3 +85,5 @@ For software development we had to start by developing the PWM signal generation
 # Credits
 
 This project was developed by Marco Pagnamenta, Karl Kangur and Jean-Luc Liardon, members of the Robopoly committee and former students of EPFL.
+
+A huge thanks to Manuel Leitos and André Badertscher from ACI workshop who made the development of the electronics possible.
