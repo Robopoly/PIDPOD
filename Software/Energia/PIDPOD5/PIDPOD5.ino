@@ -174,11 +174,11 @@ void loop()
   }
   #endif
   
+  biasCompensation();
+  
   #ifdef ENABLE_WIFI
   wifi();
   #endif
-  
-  biasCompensation();
   
   delay(8);
 }
