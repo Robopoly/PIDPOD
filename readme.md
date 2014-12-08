@@ -17,7 +17,7 @@ The full scope statement was:
 * Upright structure
 * Holes for the CC3200 development board
 
-### Electronics (custom bootser-board)
+### Electronics (custom booster-pack)
 
 * DRV8833 H-bridge with 100mOhm shunt resistors
 * MPU9150 9-axis IMU
@@ -60,7 +60,7 @@ The additional electonic components on the custom booster pack are: an H-bridge 
 
 The CC3200 development board has an accelerometer ([BMA222](http://www.bosch-sensortec.com/en/homepage/products_3/3_axis_sensors/acceleration_sensors/bma222_1/bma222)), but we found out quickly that for a good regulation a gyroscope was needed, we never succeeded in achieving stability with only an accelerometer, thus the MPU9150 on the booster pack. The MPU9150 comes in an LGA package impossible to solder by hand, thanks to the [EPFL ACI workshop](http://sti-ateliers.epfl.ch/page-19942.html), and more specifically André Badertscher, we were able solder this part with ease.
 
-The custom bootster-pack was made possible by the ACI workshop and generously manufactured thanks to Manuel Leitos, they were very kind to produce a couple PCBs for us in a very short time allowing us to make this project.
+The custom booster-pack was made possible by the ACI workshop and generously manufactured thanks to Manuel Leitos, they were very kind to produce a couple PCBs for us in a very short time allowing us to make this project.
 
 ## Software
 
