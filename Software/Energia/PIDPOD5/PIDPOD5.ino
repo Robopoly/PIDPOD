@@ -54,7 +54,7 @@ float ki = 10;
 float kd = .5;
 
 //bia compensation
-float bia_ki = 0.1;
+float bia_ki = 0.05;
 
 int16_t speed = 0;
 
