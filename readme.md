@@ -4,6 +4,8 @@
 
 The PIDPOD is a small self-balancing gyropod platform based on the Texas Instruments [CC3200 development board](http://www.ti.com/tool/cc3200-launchxl), a custom booster pack with additional electronics such as an inertial measurement unit (IMU) and some DC motors and wheels.
 
+**[Watch the video of the PIDPOD in action](https://www.youtube.com/watch?v=XYrwYyiz-3s)**
+
 ## Scope statement
 
 The PIDPOD was developed for the first Texas Instruments *Internet of Things (IoT)* workshop at [EPFL](http://www.epfl.ch/), organised by the university's robotics club: [Robopoly](http://robopoly.epfl.ch/) and [IEEE student branch](http://ieee.epfl.ch/) held on the 9th December 2014. The initiative to build the self-balancing platform was taken by Robopoly committee members and the whole project took less than 20 days from concept to product, most of the parts were readily available thanks to the robotics club parts stock.
