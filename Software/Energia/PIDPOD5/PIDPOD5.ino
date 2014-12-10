@@ -1,6 +1,6 @@
 /*
  * Name:        PIDPOD
- * Date:        2014-12-08
+ * Date:        2014-12-10
  * Version:     1.0
  * Description: Segway-type self-balancing robot sketch based on the CC3200 development board.
  */
@@ -17,8 +17,6 @@
 #define UPRIGHT_POSITION 5270
 // upright position offset bias
 #define UPRIGHT_OFFSET 10
-
-
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -65,6 +63,11 @@ int16_t speed = 0;
 // Pin definitions
 #define LED RED_LED
 #define SWAG_LED 5
+#define PUSH1 4
+#define PUSH2 11
+#define DIP1 19
+#define DIP2 18
+#define DIP3 17
 #define DIP4 15
 
 void setup()
@@ -76,30 +79,10 @@ void setup()
   
   // --------- START WIFI
   #ifdef ENABLE_WIFI
-  WiFi.begin(ssid);
-  //WiFi.begin(ssid, password);
-  while(WiFi.status() != WL_CONNECTED)
+  if(digitalRead(DIP1))
   {
-    Serial.print(".");
-    delay(300);
+    startWifi(ssid, password);
   }
-  
-  Serial.println("\nYou're connected to the network");
-  Serial.println("Waiting for an ip address");
-  
-  while(WiFi.localIP() == INADDR_NONE)
-  {
-    // print dots while we wait for an ip addresss
-    Serial.print(".");
-    delay(300);
-  }
-  
-  // you're connected now, so print out the status  
-  printWifiStatus();
-  
-  Serial.println("Starting webserver on port 80");
-  server.begin();                           // start the web server on port 80
-  Serial.println("Webserver started!");
   #endif
   // --------- END WIFI
   
@@ -135,6 +118,58 @@ void setup()
   digitalWrite(LED, HIGH);
   delay(100);
   digitalWrite(LED, LOW);
+}
+
+boolean startWifi(char ssid[], char password[])
+{
+  uint8_t retries = 3;
+  uint8_t tries;
+  
+  while(retries)
+  {
+    if(strlen(password) == 0)
+    {
+      WiFi.begin(ssid);
+    }
+    else
+    {
+      WiFi.begin(ssid, password);
+    }
+    
+    for(tries = 0; tries < 10 && WiFi.status() != WL_CONNECTED; tries++)
+    {
+      Serial.print(".");
+      delay(200);
+    }
+    
+    // Try again
+    if(retries == 0)
+    {
+      retries--;
+      continue;
+    }
+    
+    Serial.println("\nYou're connected to the network");
+    Serial.println("Waiting for an ip address");
+    
+    while(WiFi.localIP() == INADDR_NONE)
+    {
+      // print dots while we wait for an ip addresss
+      Serial.print(".");
+      delay(300);
+    }
+    
+    // you're connected now, so print out the status  
+    printWifiStatus();
+    
+    Serial.println("Starting webserver on port 80");
+    server.begin();                           // start the web server on port 80
+    Serial.println("Webserver started!");
+    
+    return true;
+  }
+  
+  return false;
 }
 
 void loop()
@@ -177,7 +212,10 @@ void loop()
   biasCompensation();
   
   #ifdef ENABLE_WIFI
-  wifi();
+  if(digitalRead(DIP1))
+  {
+    wifi();
+  }
   #endif
   
   delay(8);
