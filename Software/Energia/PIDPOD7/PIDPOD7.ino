@@ -47,8 +47,8 @@ float kd = 2;
 //bia compensation
 float bia_ki = -0.25;
 
-int16_t speed = 0;
 int16_t speed_target = 0;
+uint32_t lastTime;
 
 // Pin definitions
 #define LED RED_LED
@@ -86,7 +86,10 @@ void setup()
   Wire.begin();
   
   /* setup IMU and IMU parameters */
-  imu_set();
+  imu_setup();
+  
+  /* set controller parameters */
+  set_controller_parameters(kp, ki, kd);
 
    // Setup done
   digitalWrite(LED, HIGH);
@@ -108,45 +111,45 @@ void loop()
 
 /* ----  SHOULD NOT BE USED ANYMORE -------- */
 
-void biasCompensation()
-{
-  static uint8_t mem = 0;
-  static int16_t memory[NUMBER_SAMPLES] = {0};
-  int16_t speed_sum = 0;
-  memory[mem] = speed;
-  if(memory[mem] > 100)
-    memory[mem] = 100; 
-  if(memory[mem] < -100)
-    memory[mem] = -100;  
-  mem++;
-  if(mem >= NUMBER_SAMPLES)
-    mem = 0;
-  
-  /* Sliding average */
-  speed_sum = 0;
-  for(uint8_t k = 0; k < NUMBER_SAMPLES; k++)
-    speed_sum += memory[k];
-    
-  /* Set setpoint */
-  /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
-  upright_value_accelerometer += ((float)speed_sum/NUMBER_SAMPLES) * bia_ki;
-  
-  /* pseudo ARW */
-  if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
-  {
-    digitalWrite(SWAG_LED, HIGH);
-    upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
-  }
-  else
-    digitalWrite(SWAG_LED, LOW);
-  if(upright_value_accelerometer < upright_value_accelerometer_default -I_ARW) 
-  { 
-    upright_value_accelerometer = upright_value_accelerometer_default -I_ARW;
-     digitalWrite(LED, HIGH);
-  }
-  else
-    digitalWrite(LED, LOW);
-}
+//void biasCompensation()
+//{
+//  static uint8_t mem = 0;
+//  static int16_t memory[NUMBER_SAMPLES] = {0};
+//  int16_t speed_sum = 0;
+//  memory[mem] = speed;
+//  if(memory[mem] > 100)
+//    memory[mem] = 100; 
+//  if(memory[mem] < -100)
+//    memory[mem] = -100;  
+//  mem++;
+//  if(mem >= NUMBER_SAMPLES)
+//    mem = 0;
+//  
+//  /* Sliding average */
+//  speed_sum = 0;
+//  for(uint8_t k = 0; k < NUMBER_SAMPLES; k++)
+//    speed_sum += memory[k];
+//    
+//  /* Set setpoint */
+//  /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
+//  upright_value_accelerometer += ((float)speed_sum/NUMBER_SAMPLES) * bia_ki;
+//  
+//  /* pseudo ARW */
+//  if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
+//  {
+//    digitalWrite(SWAG_LED, HIGH);
+//    upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
+//  }
+//  else
+//    digitalWrite(SWAG_LED, LOW);
+//  if(upright_value_accelerometer < upright_value_accelerometer_default -I_ARW) 
+//  { 
+//    upright_value_accelerometer = upright_value_accelerometer_default -I_ARW;
+//     digitalWrite(LED, HIGH);
+//  }
+//  else
+//    digitalWrite(LED, LOW);
+//}
 
 void wifi()
 {
@@ -192,7 +195,7 @@ void wifi()
           client.print("<!DOCTYPE HTML><html><script>");
           client.print("function drag(field,value){document.getElementById(field).innerHTML=value/100;}function sendValues(){var fields=['JP','JI','JD'];for(i=0;i<3;i++){set(fields[i],document.getElementById(fields[i]).value);}}function set(field,value){var xmlhttp = new XMLHttpRequest();xmlhttp.open(\"GET\",\"?\"+field+\"=\"+(value<1000?'0':'')+(value<100?'0':'')+(value<10?'0':'')+value,true);xmlhttp.send(null);}</script>");
           client.print("Upright position: ");
-          client.print(upright_value_accelerometer);
+          client.print(get_accelerometer_default());
           client.print("<br />Set values: <input type=\"button\" value=\"Set\" onclick=\"sendValues();\" /><br />");
           client.print("KP: <span id=\"KP\">10</span> <input style=\"width:100%\" type=\"range\" name=\"kp\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JP\" oninput=\"drag('KP',this.value)\" /><br />KI: <span id=\"KI\">10</span> <input style=\"width:100%\" type=\"range\" name=\"ki\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JI\" oninput=\"drag('KI',this.value)\" /><br />KD: <span id=\"KD\">0.5</span> <input style=\"width:100%\" type=\"range\" name=\"kd\" min=\"0\" max=\"2000\" value=\"50\" step=\"1\" id=\"JD\" oninput=\"drag('KD',this.value)\" />");
           client.println("</html>");
@@ -227,6 +230,7 @@ void wifi()
                   break;
               }
               Serial.println(kint);
+              set_controller_parameters(kp, ki, kd);
             }
             
             found = 1;

@@ -1,5 +1,5 @@
 #include "Energia.h"
-#include "imu_conrol.h"
+#include "imu_control.h"
 #include "Motors.h"
 #include <inc/hw_types.h>
 #include <inc/hw_timer.h>
@@ -14,7 +14,8 @@
 #define DT		4 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
 #define IMU_CONTROLLER_PRESCALER 8000 // depends on the period. Target period is 100Hz
 
-
+/* Other constants */
+#define DIP4 15			// not sure why not taken from the main, maybe some energia/arduino weird stuff?
 
 
 /* ------------- Library local variables ---------------- */
@@ -24,6 +25,11 @@ float accelerometer;
 float upright_value_accelerometer;
 float acc_reading;
 float gyro_angle;
+float angle;
+int16_t speed = 0;
+float Kp,Ki,Kd;	// again, why not recognized? energia/arduino weird stuff? They should be GLOBAL! :/ Still throws an error during compilation if ki,kp,kd instead of Kp,Ki,Kd
+
+
 
 
 
@@ -69,7 +75,7 @@ void controller_setup(){
   	MAP_TimerIntEnable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
 
   	// Turn on timers
-  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, MOTOR_PRESCALER); // CHANGE HERE!!
+  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, 8000); // CHANGE HERE!!
   	MAP_TimerEnable(TIMERA1_BASE, TIMER_A);
 }
 
@@ -91,7 +97,7 @@ void read_segway_imu(void)
 void ControllerIntHandler(void)
 {
     /* Clear interrupt flag */
-    HWREG(TIMERA1_BASE + TIMER_1_ICR) = 0x1;
+    HWREG(TIMERA1_BASE + TIMER_O_ICR) = 0x1; 
     
     /* Get sensors */
     read_segway_imu();
@@ -109,7 +115,7 @@ void ControllerIntHandler(void)
   	  integral = -PID_ARW;
 
   	/* Compute controller speed */
-  	speed = angle * kp + integral * ki + gyro_angle * kd;
+  	speed = angle * Kp + integral * Ki + gyro_angle * Kd;
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
   	if(digitalRead(DIP4))
@@ -119,3 +125,20 @@ void ControllerIntHandler(void)
 		setSpeed(0, 0);
 
 }
+
+
+
+float get_accelerometer_default(void)
+{
+	return accelerometer;
+}
+
+
+void set_controller_parameters(float p, float i, float d)
+{
+	Kp = p;
+	Ki = i;
+	Kd = d;
+}
+
+

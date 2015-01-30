@@ -14,4 +14,10 @@ void read_segway_imu(void);
 /* Controller Interrupt routine */
 void ControllerIntHandler(void);
 
+/* Return upright accelerometer value */
+float get_accelerometer_default(void);
+
+/* Set controller Parameters */
+void set_controller_parameters(float p, float i, float d);
+
 #endif // _MOTORS_H_
