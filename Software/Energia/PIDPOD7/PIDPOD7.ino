@@ -117,6 +117,7 @@ void loop()
   
 }
 
+/* ----  SHOULD NOT BE USED ANYMORE -------- */
 void biasCompensation()
 {
   static uint8_t mem = 0;

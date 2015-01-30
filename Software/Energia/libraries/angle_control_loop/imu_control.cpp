@@ -20,6 +20,7 @@
 /* --------------- Controller constants ----------------- */
 #define PID_ARW 3
 #define DT		4 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
+#define IMU_CONTROLLER_PRESCALER 8000 // depends on the period. Target period is 100Hz
 
 
 
@@ -36,6 +37,8 @@ float gyro_x;
 float angle_target;
 
 
+
+/* --------------------- Functions ----------------------- */
 void imu_setup(void)
 {
 	uint8_t i;
@@ -69,8 +72,8 @@ void controller_setup(){
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA1, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA1);
   	
-  	// Configure one channel for periodic interrupts, no prescaler --> 80 MHz
-  	MAP_TimerConfigure(TIMERA1_BASE, TIMER_CFG_A_PERIODIC | TIMER_CFG_B_PERIODIC);
+  	// Configure one channel for periodic interrupts, no prescaler --> 80 MHz // OR MAYBE NOT??
+  	MAP_TimerConfigure(TIMERA1_BASE, TIMER_CFG_A_PERIODIC);
   	MAP_TimerPrescaleSet(TIMERA1_BASE, TIMER_A, 0);
 	
   	// Set timeout interrupt
@@ -78,7 +81,7 @@ void controller_setup(){
   	MAP_TimerIntEnable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
 
   	// Turn on timers
-  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, MOTOR_PRESCALER); 
+  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, MOTOR_PRESCALER); // CHANGE HERE!!
   	MAP_TimerEnable(TIMERA1_BASE, TIMER_A);
 }
 
