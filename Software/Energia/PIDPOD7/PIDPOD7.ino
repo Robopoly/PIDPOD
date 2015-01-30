@@ -116,18 +116,17 @@ void loop()
 {
   static uint32_t lastTime = micros();
   static uint32_t dt = micros();
+  static float error;
   
-  acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
-  acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
   
-  gyro_x = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
-  
+  /* -------------- Start of the IMU control part ---------------*/
+  read_segway_imu(&acc_z,&acc_y,&gyro_x);
   dt = micros() - lastTime;
   lastTime = micros();
   
   angle = (angle + gyro_x * dt / 1000000) * 0.98 + atan2(-acc_z, acc_y) * 0.02;
   angle_target = angle_stable;
-  float error = angle_target - angle;
+  error = angle_target - angle;
   
   integral = integral + error;
   // ARW
@@ -142,6 +141,10 @@ void loop()
   
   
   speed = error * kp + integral * ki + gyro_x * kd;
+  
+  /* ----------------------------------------------------------- */
+  
+  
   //biasCompensation();
   // Apply motor speeds
   #ifdef ENABLE_MOTORS

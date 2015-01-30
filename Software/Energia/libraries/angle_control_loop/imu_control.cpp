@@ -12,6 +12,9 @@
 // samples to take before changing the upright position
 #define NUMBER_SAMPLES 100
 
+//Sensors conversion factors
+#define ACC_RAW2MPS2 9.81/16384
+#define GYRO_RAW2RADPS 3.14/180/131
 
 void imu_setup(float *angle_stable, float *gyro_offset)
 {
@@ -36,4 +39,13 @@ void imu_setup(float *angle_stable, float *gyro_offset)
   	// average
   	*gyro_offset /= 16;
   	*angle_stable /= 16;
+}
+
+/* Reads the IMU, but only the variables that are interesting for the segway
+control loop */
+void read_segway_imu(float *acc_z, float *acc_y, float *gyro_x)
+{
+	acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
+  	acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
+  	gyro_x = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
 }
