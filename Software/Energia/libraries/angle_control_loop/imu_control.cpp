@@ -9,16 +9,8 @@
 #include <math.h>
 
 
-/* ---------- bias compensation parameters ------------- */
-// samples to take before changing the upright position
-#define NUMBER_SAMPLES 100
-
-/* ------------ Sensors conversion factors ------------- */
-#define ACC_RAW2MPS2 9.81/16384
-#define GYRO_RAW2RADPS 3.14/180/131
-
 /* --------------- Controller constants ----------------- */
-#define PID_ARW 3
+#define PID_ARW 10
 #define DT		4 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
 #define IMU_CONTROLLER_PRESCALER 8000 // depends on the period. Target period is 100Hz
 
@@ -27,14 +19,11 @@
 
 /* ------------- Library local variables ---------------- */
 float integral = 0;
-float derivate = 0;
-float error = 0;
-float angle_stable;
 float gyro_offset;
-float acc_x;
-float acc_z;
-float gyro_x;
-float angle_target;
+float accelerometer;
+float upright_value_accelerometer;
+float acc_reading;
+float gyro_angle;
 
 
 
@@ -42,26 +31,25 @@ float angle_target;
 void imu_setup(void)
 {
 	uint8_t i;
-	float acc_z = 0;
-	float acc_y = 0;
 	
 	gyro_offset = 0;
-  	angle_stable = 0;
+  	accelerometer = 0;
   	
   	MPU9150_init();
   	
   	// gyroscope offset
   	
-  	for(i = 0; i < 16; i++)
-  	{
-  	  gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
-  	  acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
-  	  acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
-  	  angle_stable += atan2(-acc_z, acc_y);
-  	}
-  	// average
-  	gyro_offset /= 16;
-  	angle_stable /= 16;
+  // Find accelerometer and gyroscope offset
+  float accelerometer = 0;
+  gyro_offset = 0;
+  for(i = 0; i < 16; i++)
+  {
+    accelerometer += MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
+    gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+  }
+  // average
+  upright_value_accelerometer = accelerometer/16;
+  gyro_offset /= 16;
 }
 
 
@@ -92,9 +80,8 @@ void controller_setup(){
 control loop */
 void read_segway_imu(void)
 {
-	acc_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H)  * ACC_RAW2MPS2;
-  	acc_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L, MPU9150_ACCEL_YOUT_H)  * ACC_RAW2MPS2;
-  	gyro_x = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) * GYRO_RAW2RADPS;
+	acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / 1000;
+  	gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / 200;
 }
 
 
@@ -109,14 +96,12 @@ void ControllerIntHandler(void)
     /* Get sensors */
     read_segway_imu();
   
-  	/* Compute error between desired angle (angle_target) and the real angle */
-  	angle = (angle + gyro_x * DT / 1000000) * 0.98 + atan2(-acc_z, acc_y) * 0.02;
-  	angle_target = angle_stable;
-  	error = angle_target - angle;
+  	/* Compute error between desired angle (0) and the real angle */
+  	angle = (angle + gyro_angle * DT / 1000000) * 0.98 + (acc_reading * 0.02);
   	
   	/* Accumulate integral error */
-  	integral = integral + error;
-  	
+  	integral = integral + angle * .1;
+
   	/* Apply ARW protection */
   	if(integral > PID_ARW)
   	  integral = PID_ARW;
@@ -124,7 +109,7 @@ void ControllerIntHandler(void)
   	  integral = -PID_ARW;
 
   	/* Compute controller speed */
-  	speed = error * kp + integral * ki + gyro_x * kd;
+  	speed = angle * kp + integral * ki + gyro_angle * kd;
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
   	if(digitalRead(DIP4))

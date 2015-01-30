@@ -19,6 +19,10 @@
 //Controllers parameters
 #define I_ARW 0.2
 
+/* ---------- bias compensation parameters ------------- */
+// samples to take before changing the upright position
+#define NUMBER_SAMPLES 100
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiServer.h>
@@ -58,35 +62,15 @@ void setup()
   pinMode(LED, OUTPUT);
   pinMode(SWAG_LED, OUTPUT);
   
-  
   // --------- START WIFI
   #ifdef ENABLE_WIFI
-  WiFi.begin(ssid);
-  //WiFi.begin(ssid, password);
-  while(WiFi.status() != WL_CONNECTED)
+  if(digitalRead(DIP1))
   {
-    Serial.print(".");
-    delay(300);
+    startWifi(ssid, password);
   }
-  
-  Serial.println("\nYou're connected to the network");
-  Serial.println("Waiting for an ip address");
-  
-  while(WiFi.localIP() == INADDR_NONE)
-  {
-    // print dots while we wait for an ip addresss
-    Serial.print(".");
-    delay(300);
-  }
-  
-  // you're connected now, so print out the status  
-  printWifiStatus();
-  
-  Serial.println("Starting webserver on port 80");
-  server.begin();                           // start the web server on port 80
-  Serial.println("Webserver started!");
   #endif
   // --------- END WIFI
+
   
   
   digitalWrite(SWAG_LED, HIGH);
@@ -104,30 +88,38 @@ void setup()
   /* setup IMU and IMU parameters */
   imu_set();
 
-  /* Setup done */
+   // Setup done
   digitalWrite(LED, HIGH);
+  delay(100);
+  digitalWrite(LED, LOW);
 }
 
 void loop()
 {
-  
+  /* Wifi section is managed "best effort" */
   #ifdef ENABLE_WIFI
-  wifi();
+  if(digitalRead(DIP1))
+  {
+    wifi();
+  }
   #endif
   
 }
 
 /* ----  SHOULD NOT BE USED ANYMORE -------- */
+
 void biasCompensation()
 {
   static uint8_t mem = 0;
   static int16_t memory[NUMBER_SAMPLES] = {0};
-  uint16_t speed_sum = 0;
-  
+  int16_t speed_sum = 0;
   memory[mem] = speed;
-    
+  if(memory[mem] > 100)
+    memory[mem] = 100; 
+  if(memory[mem] < -100)
+    memory[mem] = -100;  
   mem++;
-  if(mem > NUMBER_SAMPLES)
+  if(mem >= NUMBER_SAMPLES)
     mem = 0;
   
   /* Sliding average */
@@ -137,15 +129,23 @@ void biasCompensation()
     
   /* Set setpoint */
   /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
-  angle_stable += ((float)speed_target - ((float)speed_sum/NUMBER_SAMPLES)) * bia_ki;
+  upright_value_accelerometer += ((float)speed_sum/NUMBER_SAMPLES) * bia_ki;
   
   /* pseudo ARW */
-  if(angle_stable > angle_stable_default + I_ARW)
-    angle_stable = angle_stable_default + I_ARW;
-    
-  if(angle_stable < angle_stable_default -I_ARW)  
-    angle_stable = angle_stable_default -I_ARW;
-    
+  if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
+  {
+    digitalWrite(SWAG_LED, HIGH);
+    upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
+  }
+  else
+    digitalWrite(SWAG_LED, LOW);
+  if(upright_value_accelerometer < upright_value_accelerometer_default -I_ARW) 
+  { 
+    upright_value_accelerometer = upright_value_accelerometer_default -I_ARW;
+     digitalWrite(LED, HIGH);
+  }
+  else
+    digitalWrite(LED, LOW);
 }
 
 void wifi()
@@ -192,7 +192,7 @@ void wifi()
           client.print("<!DOCTYPE HTML><html><script>");
           client.print("function drag(field,value){document.getElementById(field).innerHTML=value/100;}function sendValues(){var fields=['JP','JI','JD'];for(i=0;i<3;i++){set(fields[i],document.getElementById(fields[i]).value);}}function set(field,value){var xmlhttp = new XMLHttpRequest();xmlhttp.open(\"GET\",\"?\"+field+\"=\"+(value<1000?'0':'')+(value<100?'0':'')+(value<10?'0':'')+value,true);xmlhttp.send(null);}</script>");
           client.print("Upright position: ");
-          client.print(angle_stable);
+          client.print(upright_value_accelerometer);
           client.print("<br />Set values: <input type=\"button\" value=\"Set\" onclick=\"sendValues();\" /><br />");
           client.print("KP: <span id=\"KP\">10</span> <input style=\"width:100%\" type=\"range\" name=\"kp\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JP\" oninput=\"drag('KP',this.value)\" /><br />KI: <span id=\"KI\">10</span> <input style=\"width:100%\" type=\"range\" name=\"ki\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JI\" oninput=\"drag('KI',this.value)\" /><br />KD: <span id=\"KD\">0.5</span> <input style=\"width:100%\" type=\"range\" name=\"kd\" min=\"0\" max=\"2000\" value=\"50\" step=\"1\" id=\"JD\" oninput=\"drag('KD',this.value)\" />");
           client.println("</html>");
@@ -246,6 +246,7 @@ void wifi()
     // close the connection:
     client.stop();
     //Serial.println("client disonnected");
+    lastTime = micros();
   }
 }
 
