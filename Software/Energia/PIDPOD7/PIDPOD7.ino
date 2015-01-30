@@ -5,12 +5,19 @@
  * Description: Segway-type self-balancing robot sketch based on the CC3200 development board.
  */
 
+/* --------------- TIMER SETTINGS ----------------  */
+/* TIMER0 --> motors                                */
+/* TIMER1 --> imu_controller                        */
+/* TIMER2 --> odometry         (NOT implemented)    */
+/* TIMER3 --> odometry_controller (NOT implemented) */
+/* ------------------------------------------------ */
+
+
 #define ENABLE_MOTORS
 //#define ENABLE_WIFI
 
 //Controllers parameters
 #define I_ARW 0.2
-#define PID_ARW 3
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -27,17 +34,6 @@ WiFiServer server(80);
 #include <Motors.h>
 #include <imu_control.h>
 
-float integral = 0;
-float derivate = 0;
-
-float acc_z = 0;
-float acc_y = 0;
-float gyro_x = 0;
-float gyro_offset = 0;
-float angle = 0;
-float angle_stable = 0;
-float angle_stable_default = 0;
-float angle_target = 0;
 float distance = 0;
 
 float kp = 20;
@@ -99,72 +95,26 @@ void setup()
   motorSetup();
   #endif
   
-  // initialize serial communication
+  /* initialize serial communication */
   Serial.begin(115200);
   
-  // Initialize the 'Wire' class for the I2C-bus needed for IMU
+  /* Initialize the 'Wire' class for the I2C-bus needed for IMU */
   Wire.begin();
   
-  // setup IMU and IMU parameters
-  imu_set(&angle_stable_default,&gyro_offset);
-  angle_stable = angle_stable_default;
-  // Setup done
+  /* setup IMU and IMU parameters */
+  imu_set();
+
+  /* Setup done */
   digitalWrite(LED, HIGH);
 }
 
 void loop()
 {
-  static uint32_t lastTime = micros();
-  static uint32_t dt = micros();
-  static float error;
-  
-  
-  /* -------------- Start of the IMU control part ---------------*/
-  read_segway_imu(&acc_z,&acc_y,&gyro_x);
-  dt = micros() - lastTime;
-  lastTime = micros();
-  
-  angle = (angle + gyro_x * dt / 1000000) * 0.98 + atan2(-acc_z, acc_y) * 0.02;
-  angle_target = angle_stable;
-  error = angle_target - angle;
-  
-  integral = integral + error;
-  // ARW
-  if(integral > PID_ARW)
-  {
-    integral = PID_ARW;
-  }
-  else if(integral < -PID_ARW)
-  {
-    integral = -PID_ARW;
-  }
-  
-  
-  speed = error * kp + integral * ki + gyro_x * kd;
-  
-  /* ----------------------------------------------------------- */
-  
-  
-  //biasCompensation();
-  // Apply motor speeds
-  #ifdef ENABLE_MOTORS
-  if(digitalRead(DIP4))
-  {
-    setSpeed(-speed, -speed);
-  }
-  else
-  {
-    setSpeed(0, 0);
-  }
-  #endif
   
   #ifdef ENABLE_WIFI
   wifi();
   #endif
   
-  
-  
-  delay(8);
 }
 
 void biasCompensation()
