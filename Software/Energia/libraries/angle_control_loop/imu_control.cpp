@@ -12,7 +12,7 @@
 /* --------------- Controller constants ----------------- */
 #define PID_ARW 10
 #define DT		4 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
-#define IMU_CONTROLLER_PRESCALER 8000 // depends on the period. Target period is 100Hz
+#define IMU_CONTROLLER_PRESCALER 800000 // depends on the period. Target period is 100Hz
 
 /* Other constants */
 #define DIP4 15			// not sure why not taken from the main, maybe some energia/arduino weird stuff?
@@ -75,7 +75,7 @@ void controller_setup(){
   	MAP_TimerIntEnable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
 
   	// Turn on timers
-  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, 8000); // CHANGE HERE!!
+  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, IMU_CONTROLLER_PRESCALER); 
   	MAP_TimerEnable(TIMERA1_BASE, TIMER_A);
 }
 
