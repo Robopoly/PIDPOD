@@ -117,7 +117,7 @@ void ControllerIntHandler(void)
   	speed = angle * Kp + integral * Ki + gyro_angle * Kd;
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
-  	if(digitalRead(DIP4) )
+  	if(digitalRead(DIP4) && angle_acceptable())
     	setSpeed(speed, speed);
 
   	else
@@ -131,6 +131,10 @@ float get_accelerometer_default(void)
 	return accelerometer;
 }
 
+int8_t get_speed(void)
+{
+	return  speed;
+}
 
 void set_controller_parameters(float p, float i, float d)
 {
@@ -146,4 +150,6 @@ uint8_t angle_acceptable(void)
 	else 
 		return 0;
 }
+
+
 

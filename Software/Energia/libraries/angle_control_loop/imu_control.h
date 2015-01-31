@@ -17,6 +17,9 @@ void ControllerIntHandler(void);
 /* Return upright accelerometer value */
 float get_accelerometer_default(void);
 
+/* Return speed value */
+int8_t get_speed(void);
+
 /* Set controller Parameters */
 void set_controller_parameters(float p, float i, float d);
 
