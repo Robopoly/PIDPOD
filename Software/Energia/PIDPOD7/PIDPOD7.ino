@@ -40,9 +40,9 @@ WiFiServer server(80);
 
 float distance = 0;
 
-float kp = 20;
+float kp = 10;
 float ki = 10;
-float kd = 2;
+float kd = .5;
 
 //bia compensation
 float bia_ki = -0.25;
@@ -88,13 +88,15 @@ void setup()
   /* setup IMU and IMU parameters */
   imu_setup();
   
-  /* set controller parameters */
+  /* set controller and controller parameters */
   set_controller_parameters(kp, ki, kd);
+  controller_setup();
 
    // Setup done
   digitalWrite(LED, HIGH);
   delay(100);
   digitalWrite(LED, LOW);
+  digitalWrite(SWAG_LED, LOW);
 }
 
 void loop()
