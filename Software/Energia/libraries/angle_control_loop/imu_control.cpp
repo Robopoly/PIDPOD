@@ -11,8 +11,9 @@
 
 /* --------------- Controller constants ----------------- */
 #define PID_ARW 10
-#define DT		4 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
-#define IMU_CONTROLLER_PRESCALER 800000 // depends on the period. Target period is 100Hz
+#define DT							10000 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
+#define IMU_CONTROLLER_STARTUP	 	8000 // depends on the period. Target period is 100Hz
+#define IMU_CONTROLLER_PRESCALER	100   // clock frequency is now 800KHz
 
 /* Other constants */
 #define DIP4 15			// not sure why not taken from the main, maybe some energia/arduino weird stuff?
@@ -75,7 +76,7 @@ void controller_setup(){
   	MAP_TimerIntEnable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
 
   	// Turn on timers
-  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, IMU_CONTROLLER_PRESCALER); 
+  	MAP_TimerLoadSet(TIMERA1_BASE, TIMER_A, IMU_CONTROLLER_STARTUP); 
   	MAP_TimerEnable(TIMERA1_BASE, TIMER_A);
 }
 
@@ -96,6 +97,7 @@ void read_segway_imu(void)
 /* Controller Interrupt routine */
 void ControllerIntHandler(void)
 {
+
     /* Clear interrupt flag */
     HWREG(TIMERA1_BASE + TIMER_O_ICR) = 0x1; 
     
@@ -123,7 +125,7 @@ void ControllerIntHandler(void)
 
   	else
 		setSpeed(0, 0);
-
+	
 }
 
 
