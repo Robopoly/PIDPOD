@@ -26,7 +26,7 @@ float accelerometer;
 float upright_value_accelerometer;
 float acc_reading;
 float gyro_angle;
-float angle;
+float angle = 0;
 int16_t speed = 0;
 float Kp,Ki,Kd;	// again, why not recognized? energia/arduino weird stuff? They should be GLOBAL! :/ Still throws an error during compilation if ki,kp,kd instead of Kp,Ki,Kd
 
@@ -38,25 +38,23 @@ float Kp,Ki,Kd;	// again, why not recognized? energia/arduino weird stuff? They 
 void imu_setup(void)
 {
 	uint8_t i;
-	
+
+
+	MPU9150_init();
+
+	// gyroscope offset
+
+	// Find accelerometer and gyroscope offset
+	accelerometer = 0;
 	gyro_offset = 0;
-  	accelerometer = 0;
-  	
-  	MPU9150_init();
-  	
-  	// gyroscope offset
-  	
-  // Find accelerometer and gyroscope offset
-  float accelerometer = 0;
-  gyro_offset = 0;
-  for(i = 0; i < 16; i++)
-  {
-    accelerometer += MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
-    gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
-  }
-  // average
-  upright_value_accelerometer = accelerometer/16;
-  gyro_offset /= 16;
+	for(i = 0; i < 16; i++)
+	{
+	accelerometer += MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
+	gyro_offset += MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+	}
+	// average
+	upright_value_accelerometer = accelerometer/16;
+	gyro_offset /= 16;
 }
 
 
@@ -68,8 +66,8 @@ void controller_setup(){
   	MAP_PRCMPeripheralReset(PRCM_TIMERA1);
   	
   	// Configure one channel for periodic interrupts, no prescaler --> 80 MHz // OR MAYBE NOT??
-  	MAP_TimerConfigure(TIMERA1_BASE, TIMER_CFG_A_PERIODIC);
-  	MAP_TimerPrescaleSet(TIMERA1_BASE, TIMER_A, 0);
+  	MAP_TimerConfigure(TIMERA1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
+  	MAP_TimerPrescaleSet(TIMERA1_BASE, TIMER_A, IMU_CONTROLLER_PRESCALER);
 	
   	// Set timeout interrupt
   	MAP_TimerIntRegister(TIMERA1_BASE, TIMER_A, ControllerIntHandler);
@@ -97,7 +95,6 @@ void read_segway_imu(void)
 /* Controller Interrupt routine */
 void ControllerIntHandler(void)
 {
-
     /* Clear interrupt flag */
     HWREG(TIMERA1_BASE + TIMER_O_ICR) = 0x1; 
     
@@ -120,12 +117,11 @@ void ControllerIntHandler(void)
   	speed = angle * Kp + integral * Ki + gyro_angle * Kd;
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
-  	if(digitalRead(DIP4))
-    	setSpeed(-speed, -speed);
+  	if(digitalRead(DIP4) )
+    	setSpeed(speed, speed);
 
   	else
 		setSpeed(0, 0);
-	
 }
 
 
@@ -143,4 +139,11 @@ void set_controller_parameters(float p, float i, float d)
 	Kd = d;
 }
 
+uint8_t angle_acceptable(void)
+{
+	if((angle > -6) && (angle < 15))
+		return 1;
+	else 
+		return 0;
+}
 

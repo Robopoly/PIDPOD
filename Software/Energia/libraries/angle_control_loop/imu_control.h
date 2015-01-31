@@ -20,4 +20,7 @@ float get_accelerometer_default(void);
 /* Set controller Parameters */
 void set_controller_parameters(float p, float i, float d);
 
+/* Checks if the pidpod is within controllable angles */
+uint8_t angle_acceptable(void);
+
 #endif // _MOTORS_H_
