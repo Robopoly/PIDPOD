@@ -8,8 +8,8 @@
 /* --------------- TIMER SETTINGS ----------------  */
 /* TIMER0 --> motors                                */
 /* TIMER1 --> imu_controller                        */
-/* TIMER2 --> odometry         (NOT implemented)    */
-/* TIMER3 --> odometry_controller (NOT implemented) */
+/* TIMER2 --> odometry                              */
+/* TIMER3 --> odometry_controller                   */
 /* ------------------------------------------------ */
 
 
@@ -46,7 +46,6 @@ float kd = 0.8;
 float bia_ki = -0.25;
 
 int16_t speed_target = 0;
-uint32_t lastTime;
 
 // Pin definitions
 #define LED       RED_LED
@@ -167,14 +166,15 @@ void loop()
 {
   
   /* Wifi section is managed "best effort" */
+
   if(digitalRead(DIP1))
   {
     wifi();
   }  
+
+  delay(1);
   
-//  delay(5);
-  
- // Serial.println(get_accelerometer_offset());
+ // Serial.println("test");
   
 }
 
@@ -219,34 +219,38 @@ void loop()
 //  else
 //    digitalWrite(LED, LOW);
 //}
+   
 
 void wifi()
 {
-  digitalWrite(RED_LED,HIGH);
+   char input[20];    
+   char type, c, testchar;    
+   uint8_t count = 0;
+   int kint = 0;
+   float kfloat = 0;
+   uint8_t found = 0;
+   char digit[4];
+   boolean currentLineIsBlank = true;
+   WiFiClient client;
+
   // listen for incoming clients
-  WiFiClient client = server.available();
-              digitalWrite(RED_LED,LOW);
+  client = server.available();
 
   if (client) {
     //Serial.println("new client");
     // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
-    char input[20];
-    char type;
-    uint8_t count = 0;;
-    int kint = 0;
-    float kfloat = 0;
-    uint8_t found = 0;
-    char testchar;
-    char digit[4];
-    
-
-    while(client.connected())
+    currentLineIsBlank = true;
+    count = 0;
+    kint = 0;
+    kfloat = 0;
+    found = 0;
+                                                                                                          
+      while(client.connected())
     {
       if(client.available())
       {
-        char c = client.read();
-        //Serial.write(c);
+        c = client.read();
+        Serial.write(c);
         
         // Catch the first 20 lines
         if(count < 20)
@@ -254,6 +258,8 @@ void wifi()
           count++,
           input[count] = c;
         }
+        
+        Serial.print(c);
         
         // if you've gotten to the end of the line (received a newline
         // character) and the line is blank, the http request has ended,
@@ -303,8 +309,7 @@ void wifi()
                   kd = kfloat;
                   break;
               }
-              //Serial.println(kint);
-              //set_controller_parameters(kp, ki, kd);
+              Serial.println(kint);
             }
             
             found = 1;
@@ -324,10 +329,12 @@ void wifi()
     // close the connection:
     client.stop();
     //Serial.println("client disonnected");
-    lastTime = micros();
   }
 }
 
+
+
+  
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
   Serial.print("Network Name: ");
