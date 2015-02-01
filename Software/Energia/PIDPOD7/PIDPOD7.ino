@@ -24,8 +24,8 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 
-char ssid[] = "MacBook di Marco Pagnamenta";
-char password[] = "marcuzio";
+char ssid[] = "lol";
+char password[] = "lol";
 // Don't forget to change the WiFi.begin function as well
 
 WiFiServer server(80);
