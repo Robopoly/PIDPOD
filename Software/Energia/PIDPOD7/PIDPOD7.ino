@@ -24,8 +24,8 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 
-char ssid[] = "Workshop";
-char password[] = "ecolblimp";
+char ssid[] = "MacBook di Marco Pagnamenta";
+char password[] = "marcuzio";
 // Don't forget to change the WiFi.begin function as well
 
 WiFiServer server(80);
@@ -34,12 +34,13 @@ WiFiServer server(80);
 #include <MPU9150.h>
 #include <Motors.h>
 #include <imu_control.h>
+#include <odometer.h>
 
 float distance = 0;
 
-float kp = 20;
-float ki = 10;
-float kd = 2;
+float kp = 12;
+float ki = 11;
+float kd = 0.8;
 
 //bia compensation
 float bia_ki = -0.25;
@@ -48,16 +49,25 @@ int16_t speed_target = 0;
 uint32_t lastTime;
 
 // Pin definitions
-#define LED RED_LED
-#define SWAG_LED 5
-#define DIP4 15
+#define LED       RED_LED
+#define SWAG_LED  5
+#define DIP4      15
+#define DIP2      18
+#define DIP3      17
+#define DIP1      19  
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(15, INPUT);
+  pinMode(DIP4, INPUT);
+  pinMode(DIP1, INPUT);
+  pinMode(14, INPUT);    // odo1 et 2
+  pinMode(6, INPUT);
   pinMode(LED, OUTPUT);
   pinMode(SWAG_LED, OUTPUT);
+  
+  digitalWrite(SWAG_LED, HIGH);
+  delay(1000);
   
   // --------- START WIFI
   if(digitalRead(DIP1))
@@ -66,7 +76,6 @@ void setup()
   }
   // --------- END WIFI
   
-  digitalWrite(SWAG_LED, HIGH);
 
   motorSetup();
   
@@ -84,11 +93,73 @@ void setup()
   
   /* Set controller parameters */
   set_controller_parameters(kp, ki, kd);
+  controller_setup();
+  odometer_controller_setup();      // MUST be the last one called!
+
 
   digitalWrite(LED, HIGH);
   delay(100);
   digitalWrite(LED, LOW);
+  digitalWrite(SWAG_LED, LOW);
+
 }
+
+
+
+
+boolean startWifi(char ssid[], char password[])
+{
+  uint8_t retries = 3;
+  uint8_t tries;
+  
+  while(retries)
+  {
+    if(strlen(password) == 0)
+    {
+      WiFi.begin(ssid);
+    }
+    else
+    {
+      WiFi.begin(ssid, password);
+    }
+    
+    for(tries = 0; tries < 10 && WiFi.status() != WL_CONNECTED; tries++)
+    {
+      Serial.print(".");
+      delay(200);
+    }
+    
+    // Try again
+    if(retries == 0)
+    {
+      retries--;
+      continue;
+    }
+    
+    Serial.println("\nYou're connected to the network");
+    Serial.println("Waiting for an ip address");
+    
+    while(WiFi.localIP() == INADDR_NONE)
+    {
+      // print dots while we wait for an ip addresss
+      Serial.print(".");
+      delay(300);
+    }
+    
+    // you're connected now, so print out the status  
+    printWifiStatus();
+    
+    Serial.println("Starting webserver on port 80");
+    server.begin();                           // start the web server on port 80
+    Serial.println("Webserver started!");
+    
+    return true;
+  }
+  
+  return false;
+}
+
+
 
 
 
@@ -100,6 +171,10 @@ void loop()
   {
     wifi();
   }  
+  
+//  delay(5);
+  
+ // Serial.println(get_accelerometer_offset());
   
 }
 
@@ -147,8 +222,11 @@ void loop()
 
 void wifi()
 {
+  digitalWrite(RED_LED,HIGH);
   // listen for incoming clients
   WiFiClient client = server.available();
+              digitalWrite(RED_LED,LOW);
+
   if (client) {
     //Serial.println("new client");
     // an http request ends with a blank line
@@ -161,6 +239,8 @@ void wifi()
     uint8_t found = 0;
     char testchar;
     char digit[4];
+    
+
     while(client.connected())
     {
       if(client.available())
@@ -223,8 +303,8 @@ void wifi()
                   kd = kfloat;
                   break;
               }
-              Serial.println(kint);
-              set_controller_parameters(kp, ki, kd);
+              //Serial.println(kint);
+              //set_controller_parameters(kp, ki, kd);
             }
             
             found = 1;

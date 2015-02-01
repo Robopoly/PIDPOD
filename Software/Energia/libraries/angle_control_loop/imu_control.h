@@ -26,4 +26,8 @@ void set_controller_parameters(float p, float i, float d);
 /* Checks if the pidpod is within controllable angles */
 uint8_t angle_acceptable(void);
 
+/* Return the upright value of the accelerometer. Should only be used at startup */
+float get_accelerometer_default_offset(void);
+
+
 #endif // _MOTORS_H_

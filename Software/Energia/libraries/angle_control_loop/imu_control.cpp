@@ -1,6 +1,7 @@
 #include "Energia.h"
 #include "imu_control.h"
 #include "Motors.h"
+#include "odometer.h"
 #include <inc/hw_types.h>
 #include <inc/hw_timer.h>
 #include <driverlib/prcm.h>
@@ -10,10 +11,10 @@
 
 
 /* --------------- Controller constants ----------------- */
-#define PID_ARW 10
-#define DT							10000 // ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
-#define IMU_CONTROLLER_STARTUP	 	8000 // depends on the period. Target period is 100Hz
-#define IMU_CONTROLLER_PRESCALER	100   // clock frequency is now 800KHz
+#define PID_ARW 5
+#define DT							10000. 	// ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
+#define IMU_CONTROLLER_STARTUP	 	8000 	// depends on the period. Target period is 100Hz
+#define IMU_CONTROLLER_PRESCALER	100   	// clock frequency is now 800KHz
 
 /* Other constants */
 #define DIP4 15			// not sure why not taken from the main, maybe some energia/arduino weird stuff?
@@ -85,6 +86,7 @@ void controller_setup(){
 control loop */
 void read_segway_imu(void)
 {
+	upright_value_accelerometer = get_accelerometer_offset();
 	acc_reading = -(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / 1000;
   	gyro_angle = (MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / 200;
 }
@@ -145,11 +147,27 @@ void set_controller_parameters(float p, float i, float d)
 
 uint8_t angle_acceptable(void)
 {
+	static uint8_t unstable_count;
+	
+	/* Count how many times the angle of PIDPOD was outside stabilizable range */
 	if((angle > -6) && (angle < 15))
-		return 1;
+		unstable_count = 0;
 	else 
+		unstable_count++;
+		
+	if(unstable_count > 250) // avoid overflow
+		unstable_count = 250;
+	
+	/* If for more than 0.5 seconds, return 0*/	
+	if(unstable_count > 50)
 		return 0;
+	else
+		return 1;
 }
 
+float get_accelerometer_default_offset(void)
+{
+	return upright_value_accelerometer;
+}
 
 

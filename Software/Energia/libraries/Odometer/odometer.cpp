@@ -9,9 +9,11 @@
 
 
 /* --------------------- Constants ---------------------- */
-#define ODOMETER_STARTUP	 	8000 // depends on the period. Target period is 200Hz
-#define ODOMETER_PRESCALER	100   // clock frequency is now 1.6 MHz			
-
+#define ODOMETER_STARTUP	 			8000 	// depends on the period. Target period is 200Hz
+#define ODOMETER_PRESCALER				50  	// clock frequency is now 1.6 MHz			
+#define ODOMETER_CONTROLLER_STARTUP	 	32000 	// depends on the period. Target period is 10Hz
+#define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz	
+#define KP_ODOMETER						0.
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 
@@ -26,12 +28,17 @@ uint8_t odo1_old = 0;
 uint8_t odo2_old = 0;
 int32_t odo1_total = 0;
 int32_t odo2_total = 0;
+int32_t odo1_total_old = 0;
+int32_t odo2_total_old = 0;
+int32_t distance_delta1 = 0;
+int32_t distance_delta2 = 0;
+float acc_value = 0;
 
 
 /* --------------------- Functions ----------------------- */
 
 
-void odometer_setup(){														
+void odometer_setup(void){														
 	// Enable timer A peripheral
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA2, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA2);
@@ -49,8 +56,29 @@ void odometer_setup(){
   	MAP_TimerEnable(TIMERA2_BASE, TIMER_A);
 }
 
+void odometer_controller_setup(void){	
+	// gets variable
+	acc_value = get_accelerometer_default_offset();
+													
+	// Enable timer A peripheral
+  	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA3, PRCM_RUN_MODE_CLK);
+  	MAP_PRCMPeripheralReset(PRCM_TIMERA3);
+  	
+  	// Configure one channel for periodic interrupts 
+  	MAP_TimerConfigure(TIMERA3_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
+  	MAP_TimerPrescaleSet(TIMERA3_BASE, TIMER_A, ODOMETER_CONTROLLER_PRESCALER);
+	
+  	// Set timeout interrupt
+  	MAP_TimerIntRegister(TIMERA3_BASE, TIMER_A, OdometerControllerIntHandler);
+  	MAP_TimerIntEnable(TIMERA3_BASE, TIMER_TIMA_TIMEOUT);
+
+  	// Turn on timers
+  	MAP_TimerLoadSet(TIMERA3_BASE, TIMER_A, ODOMETER_CONTROLLER_STARTUP); 
+  	MAP_TimerEnable(TIMERA3_BASE, TIMER_A);
+}
+
 /* Odometer Interrupt routine */
-void OdometerIntHandler(void)												// VERIFY HERE 3 + the header
+void OdometerIntHandler(void)												
 {
 	int8_t speed;
 	speed = get_speed();
@@ -81,4 +109,37 @@ void OdometerIntHandler(void)												// VERIFY HERE 3 + the header
 		
 	odo1_old = odo1;
 	odo2_old = odo2;
+
+}
+
+/* Odometer controller Interrupt routine */
+void OdometerControllerIntHandler(void)												
+{	
+	static int debug;
+    /* Clear interrupt flag */
+    HWREG(TIMERA3_BASE + TIMER_O_ICR) = 0x1; 
+    
+    /* Compute advance between two steps */
+	distance_delta1 = odo1_total - odo1_total_old;
+	
+	/* Here PID controller for horizontal movement */
+	acc_value = acc_value + (float)distance_delta1 * KP_ODOMETER;
+
+	odo1_total_old = odo1_total;
+	
+	if(debug)
+	{
+		digitalWrite(5,HIGH);
+		debug = 0;
+	}
+	else
+	{
+		digitalWrite(5,LOW);
+		debug = 1;
+	}
+}
+
+float get_accelerometer_offset(void)
+{
+	return acc_value;
 }
