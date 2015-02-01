@@ -65,7 +65,7 @@ void controller_setup(){
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA1, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA1);
   	
-  	// Configure one channel for periodic interrupts, no prescaler --> 80 MHz // OR MAYBE NOT??
+  	// Configure one channel for periodic interrupts
   	MAP_TimerConfigure(TIMERA1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
   	MAP_TimerPrescaleSet(TIMERA1_BASE, TIMER_A, IMU_CONTROLLER_PRESCALER);
 	

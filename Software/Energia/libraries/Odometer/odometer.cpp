@@ -9,10 +9,9 @@
 
 
 /* --------------------- Constants ---------------------- */
-#define ODOMETER_STARTUP	 	8000 // depends on the period. Target period is 100Hz
-#define ODOMETER_PRESCALER	100   // clock frequency is now 800KHz			
+#define ODOMETER_STARTUP	 	8000 // depends on the period. Target period is 200Hz
+#define ODOMETER_PRESCALER	100   // clock frequency is now 1.6 MHz			
 
-																		// VERIFY HERE 1
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 
@@ -32,12 +31,12 @@ int32_t odo2_total = 0;
 /* --------------------- Functions ----------------------- */
 
 
-void odometer_setup(){														// VERIFY HERE 2
+void odometer_setup(){														
 	// Enable timer A peripheral
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA2, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA2);
   	
-  	// Configure one channel for periodic interrupts, no prescaler --> 80 MHz // OR MAYBE NOT??
+  	// Configure one channel for periodic interrupts 
   	MAP_TimerConfigure(TIMERA2_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
   	MAP_TimerPrescaleSet(TIMERA2_BASE, TIMER_A, ODOMETER_PRESCALER);
 	
