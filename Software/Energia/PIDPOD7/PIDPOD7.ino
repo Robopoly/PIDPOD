@@ -38,9 +38,9 @@ WiFiServer server(80);
 
 float distance = 0;
 
-float kp = 12;
-float ki = 11;
-float kd = 0.8;
+float kp = 10;
+float ki = 14;
+float kd = 0.5;
 
 //bia compensation
 float bia_ki = -0.25;

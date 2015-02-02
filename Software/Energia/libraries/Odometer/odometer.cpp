@@ -13,7 +13,8 @@
 #define ODOMETER_PRESCALER				50  	// clock frequency is now 1.6 MHz			
 #define ODOMETER_CONTROLLER_STARTUP	 	32000 	// depends on the period. Target period is 10Hz
 #define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz	
-#define KP_ODOMETER						5.
+#define KI_ODOMETER						7.
+#define KP_ODOMETER						3.		// 4/3.5 worked quite well
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 
@@ -33,6 +34,7 @@ int32_t odo2_total_old = 0;
 int32_t distance_delta1 = 0;
 int32_t distance_delta2 = 0;
 float acc_value = 0;
+float acc_value_startup;
 
 
 /* --------------------- Functions ----------------------- */
@@ -58,7 +60,7 @@ void odometer_setup(void){
 
 void odometer_controller_setup(void){	
 	// gets variable
-	acc_value = get_accelerometer_default_offset();
+	acc_value_startup = get_accelerometer_default_offset();
 													
 	// Enable timer A peripheral
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA3, PRCM_RUN_MODE_CLK);
@@ -80,7 +82,7 @@ void odometer_controller_setup(void){
 /* Odometer Interrupt routine */
 void OdometerIntHandler(void)												
 {
-	int8_t speed;
+	int16_t speed;
 	speed = get_speed();
 	
     /* Clear interrupt flag */
@@ -123,9 +125,12 @@ void OdometerControllerIntHandler(void)
 	distance_delta1 = odo1_total - odo1_total_old;
 	
 	/* Here PID controller for horizontal movement */
-	acc_value = acc_value + (float)distance_delta1 * KP_ODOMETER;
-
+	acc_value = acc_value_startup + (float)distance_delta1 * KP_ODOMETER + (float)odo1_total * KI_ODOMETER;
+	
 	odo1_total_old = odo1_total;
+	
+	/* ARW? */ // MAYBE for odo1_total, reset sometimes
+	//if(odo1_total > )
 	
 	if(debug)
 	{
