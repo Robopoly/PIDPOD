@@ -39,11 +39,9 @@ WiFiServer server(80);
 float distance = 0;
 
 float kp = 10;
-float ki = 14;
+float ki = 10;
 float kd = 0.5;
 
-//bia compensation
-float bia_ki = -0.25;
 
 int16_t speed_target = 0;
 
@@ -178,48 +176,7 @@ void loop()
   
 }
 
-/* ----  SHOULD NOT BE USED ANYMORE -------- */
 
-//void biasCompensation()
-//{
-//  static uint8_t mem = 0;
-//  static int16_t memory[NUMBER_SAMPLES] = {0};
-//  int16_t speed_sum = 0;
-//  memory[mem] = speed;
-//  if(memory[mem] > 100)
-//    memory[mem] = 100; 
-//  if(memory[mem] < -100)
-//    memory[mem] = -100;  
-//  mem++;
-//  if(mem >= NUMBER_SAMPLES)
-//    mem = 0;
-//  
-//  /* Sliding average */
-//  speed_sum = 0;
-//  for(uint8_t k = 0; k < NUMBER_SAMPLES; k++)
-//    speed_sum += memory[k];
-//    
-//  /* Set setpoint */
-//  /* upright_value_accelerometer must be bigger for speed > 0, smaller for speed < 0 */
-//  upright_value_accelerometer += ((float)speed_sum/NUMBER_SAMPLES) * bia_ki;
-//  
-//  /* pseudo ARW */
-//  if(upright_value_accelerometer > upright_value_accelerometer_default + I_ARW)
-//  {
-//    digitalWrite(SWAG_LED, HIGH);
-//    upright_value_accelerometer = upright_value_accelerometer_default + I_ARW;
-//  }
-//  else
-//    digitalWrite(SWAG_LED, LOW);
-//  if(upright_value_accelerometer < upright_value_accelerometer_default -I_ARW) 
-//  { 
-//    upright_value_accelerometer = upright_value_accelerometer_default -I_ARW;
-//     digitalWrite(LED, HIGH);
-//  }
-//  else
-//    digitalWrite(LED, LOW);
-//}
-   
 
 void wifi()
 {
