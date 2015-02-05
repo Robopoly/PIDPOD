@@ -13,10 +13,10 @@
 #define ODOMETER_PRESCALER				50  	// clock frequency is now 1.6 MHz			
 #define ODOMETER_CONTROLLER_STARTUP	 	32000 	// depends on the period. Target period is 10Hz
 #define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz	
-#define KI_ODOMETER						3.		// 1 worked quite well
-#define KP_ODOMETER						500.		// 4 worked quite well
-#define KD_ODOMETER						40.		// 
-#define ODO_ARW							15
+#define KI_ODOMETER						10.		// 20 stability limit, 10 is ok
+#define KP_ODOMETER						190.	// 200 stability limit, 190/200 is ok
+#define KD_ODOMETER						140.	// 300 stability limit, 100/150 is ok
+#define ODO_ARW							12		// 12 is ok
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 

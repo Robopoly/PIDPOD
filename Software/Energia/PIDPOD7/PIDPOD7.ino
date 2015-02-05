@@ -17,8 +17,12 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 
-char ssid[] = "Hotspotname";
-char password[] = "password";
+// char ssid[] = "Hotspotname";
+// char password[] = "password";
+
+char ssid[] = "MacBook di Marco Pagnamenta";
+char password[] = "marcuzio";
+
 // Don't forget to change the WiFi.begin function as well
 
 WiFiServer server(80);
@@ -29,9 +33,9 @@ WiFiServer server(80);
 #include <imu_control.h>
 #include <odometer.h>
 
-float kp = 40;
-float ki = 12;
-float kd = 0.6;
+float kp = 10;    // 10 is ok
+float ki = 30;    // 25/30 is ok. Maybe even more
+float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
 
 // Pin definitions
 #define LED       RED_LED
@@ -156,9 +160,10 @@ void loop()
   if(digitalRead(DIP1))
   {
     wifi();
+    set_controller_parameters(kp, ki, kd);
   }  
 
-  delay(1);
+  delay(100);
 
   // Serial.println("test");
 
@@ -216,13 +221,22 @@ void wifi()
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: text/html");
           client.println("Connection: close");  // the connection will be closed after completion of the response
+          client.println("Refresh: 8");
           client.println();
           client.print("<!DOCTYPE HTML><html><script>");
           client.print("function drag(field,value){document.getElementById(field).innerHTML=value/100;}function sendValues(){var fields=['JP','JI','JD'];for(i=0;i<3;i++){set(fields[i],document.getElementById(fields[i]).value);}}function set(field,value){var xmlhttp = new XMLHttpRequest();xmlhttp.open(\"GET\",\"?\"+field+\"=\"+(value<1000?'0':'')+(value<100?'0':'')+(value<10?'0':'')+value,true);xmlhttp.send(null);}</script>");
           client.print("Upright position: ");
-          client.print(get_accelerometer_default());
+          client.print(get_accelerometer_default_offset());
+          client.print("    Corrected upright position: ");
+          client.print(get_accelerometer_offset());
           client.print("<br />Set values: <input type=\"button\" value=\"Set\" onclick=\"sendValues();\" /><br />");
           client.print("KP: <span id=\"KP\">10</span> <input style=\"width:100%\" type=\"range\" name=\"kp\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JP\" oninput=\"drag('KP',this.value)\" /><br />KI: <span id=\"KI\">10</span> <input style=\"width:100%\" type=\"range\" name=\"ki\" min=\"0\" max=\"2000\" value=\"1000\" step=\"1\" id=\"JI\" oninput=\"drag('KI',this.value)\" /><br />KD: <span id=\"KD\">0.5</span> <input style=\"width:100%\" type=\"range\" name=\"kd\" min=\"0\" max=\"2000\" value=\"50\" step=\"1\" id=\"JD\" oninput=\"drag('KD',this.value)\" />");
+          client.print("Kp: ");
+          client.print(kp);
+          client.print("  Ki: ");
+          client.print(ki);
+          client.print("  Kd: ");
+          client.print(kd);
           client.println("</html>");
           break;
         }

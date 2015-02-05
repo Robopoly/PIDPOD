@@ -104,7 +104,7 @@ void ControllerIntHandler(void)
     read_segway_imu();
   
   	/* Compute error between desired angle (0) and the real angle */
-  	angle = (angle + gyro_angle * DT / 1000000) * 0.99 + (acc_reading * 0.01);
+  	angle = (angle + gyro_angle * DT / 1000000) * 0.98 + (acc_reading * 0.02);
   	
   	/* Accumulate integral error */
   	integral = integral + angle * .1;
@@ -121,7 +121,8 @@ void ControllerIntHandler(void)
   	
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
-  	if(digitalRead(DIP4) && angle_acceptable())
+  	//if(digitalRead(DIP4) && angle_acceptable())
+  	if(digitalRead(DIP4))
     	setSpeed(speed, speed);
 
   	else
