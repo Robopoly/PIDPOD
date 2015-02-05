@@ -11,7 +11,7 @@
 
 
 /* --------------- Controller constants ----------------- */
-#define PID_ARW 5
+#define PID_ARW 					4.
 #define DT							10000. 	// ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
 #define IMU_CONTROLLER_STARTUP	 	8000 	// depends on the period. Target period is 100Hz
 #define IMU_CONTROLLER_PRESCALER	100   	// clock frequency is now 800KHz
@@ -104,7 +104,7 @@ void ControllerIntHandler(void)
     read_segway_imu();
   
   	/* Compute error between desired angle (0) and the real angle */
-  	angle = (angle + gyro_angle * DT / 1000000) * 0.98 + (acc_reading * 0.02);
+  	angle = (angle + gyro_angle * DT / 1000000) * 0.99 + (acc_reading * 0.01);
   	
   	/* Accumulate integral error */
   	integral = integral + angle * .1;

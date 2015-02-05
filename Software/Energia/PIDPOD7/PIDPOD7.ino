@@ -13,19 +13,12 @@
 /* ------------------------------------------------ */
 
 
-//Controllers parameters
-#define I_ARW 0.2
-
-/* ---------- bias compensation parameters ------------- */
-// samples to take before changing the upright position
-#define NUMBER_SAMPLES 100
-
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 
-char ssid[] = "lol";
-char password[] = "lol";
+char ssid[] = "Hotspotname";
+char password[] = "password";
 // Don't forget to change the WiFi.begin function as well
 
 WiFiServer server(80);
@@ -36,14 +29,9 @@ WiFiServer server(80);
 #include <imu_control.h>
 #include <odometer.h>
 
-float distance = 0;
-
-float kp = 10;
-float ki = 10;
-float kd = 0.5;
-
-
-int16_t speed_target = 0;
+float kp = 40;
+float ki = 12;
+float kd = 0.6;
 
 // Pin definitions
 #define LED       RED_LED
@@ -62,32 +50,32 @@ void setup()
   pinMode(6, INPUT);
   pinMode(LED, OUTPUT);
   pinMode(SWAG_LED, OUTPUT);
-  
+
   digitalWrite(SWAG_LED, HIGH);
   delay(1000);
-  
+
   // --------- START WIFI
   if(digitalRead(DIP1))
   {
     startWifi(ssid, password);
   }
   // --------- END WIFI
-  
+
 
   motorSetup();
-  
+
   /* Initialize serial communication */
   Serial.begin(115200);
-  
+
   /* Initialize the 'Wire' class for the I2C-bus needed for IMU */
   Wire.begin();
-  
+
   /* Setup odometer */
   odometer_setup();
-  
+
   /* Setup IMU and IMU parameters */
   imu_setup();
-  
+
   /* Set controller parameters */
   set_controller_parameters(kp, ki, kd);
   controller_setup();
@@ -108,7 +96,7 @@ boolean startWifi(char ssid[], char password[])
 {
   uint8_t retries = 3;
   uint8_t tries;
-  
+
   while(retries)
   {
     if(strlen(password) == 0)
@@ -119,40 +107,40 @@ boolean startWifi(char ssid[], char password[])
     {
       WiFi.begin(ssid, password);
     }
-    
+
     for(tries = 0; tries < 10 && WiFi.status() != WL_CONNECTED; tries++)
     {
       Serial.print(".");
       delay(200);
     }
-    
+
     // Try again
     if(retries == 0)
     {
       retries--;
       continue;
     }
-    
+
     Serial.println("\nYou're connected to the network");
     Serial.println("Waiting for an ip address");
-    
+
     while(WiFi.localIP() == INADDR_NONE)
     {
       // print dots while we wait for an ip addresss
       Serial.print(".");
       delay(300);
     }
-    
+
     // you're connected now, so print out the status  
     printWifiStatus();
-    
+
     Serial.println("Starting webserver on port 80");
     server.begin();                           // start the web server on port 80
     Serial.println("Webserver started!");
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -162,7 +150,7 @@ boolean startWifi(char ssid[], char password[])
 
 void loop()
 {
-  
+
   /* Wifi section is managed "best effort" */
 
   if(digitalRead(DIP1))
@@ -171,24 +159,24 @@ void loop()
   }  
 
   delay(1);
-  
- // Serial.println("test");
-  
+
+  // Serial.println("test");
+
 }
 
 
 
 void wifi()
 {
-   char input[20];    
-   char type, c, testchar;    
-   uint8_t count = 0;
-   int kint = 0;
-   float kfloat = 0;
-   uint8_t found = 0;
-   char digit[4];
-   boolean currentLineIsBlank = true;
-   WiFiClient client;
+  char input[20];    
+  char type, c, testchar;    
+  uint8_t count = 0;
+  int kint = 0;
+  float kfloat = 0;
+  uint8_t found = 0;
+  char digit[4];
+  boolean currentLineIsBlank = true;
+  WiFiClient client;
 
   // listen for incoming clients
   client = server.available();
@@ -201,23 +189,23 @@ void wifi()
     kint = 0;
     kfloat = 0;
     found = 0;
-                                                                                                          
-      while(client.connected())
+
+    while(client.connected())
     {
       if(client.available())
       {
         c = client.read();
-        Serial.write(c);
-        
+        //Serial.write(c);
+
         // Catch the first 20 lines
         if(count < 20)
         {
           count++,
           input[count] = c;
         }
-        
-        Serial.print(c);
-        
+
+        //Serial.print(c);
+
         // if you've gotten to the end of the line (received a newline
         // character) and the line is blank, the http request has ended,
         // so you can send a reply
@@ -247,31 +235,31 @@ void wifi()
             digit[1] = input[11];
             digit[2] = input[12];
             digit[3] = input[13];
-            
+
             // parse
             kint = (((uint8_t)digit[0])-48)*1000 + (((uint8_t)digit[1])-48)*100 + (((uint8_t)digit[2])-48)*10 + ((uint8_t)digit[3])-48;
             kfloat = (float)kint/100.;
-            
+
             if(kint <= 2000)
             {
               switch(type)
               {
-                case 'P':
-                  kp = kfloat;
-                  break;
-                case 'I':
-                  ki = kfloat;
-                  break;
-                case 'D':
-                  kd = kfloat;
-                  break;
+              case 'P':
+                kp = kfloat;
+                break;
+              case 'I':
+                ki = kfloat;
+                break;
+              case 'D':
+                kd = kfloat;
+                break;
               }
               Serial.println(kint);
             }
-            
+
             found = 1;
           }
-          
+
           currentLineIsBlank = true;
         }
         else if (c != '\r') {
@@ -291,7 +279,7 @@ void wifi()
 
 
 
-  
+
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
   Serial.print("Network Name: ");
@@ -308,4 +296,5 @@ void printWifiStatus() {
   Serial.print(rssi);
   Serial.println(" dBm");
 }
+
 
