@@ -17,11 +17,9 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 
-// char ssid[] = "Hotspotname";
-// char password[] = "password";
+char ssid[] = "Hotspotname";
+char password[] = "password";
 
-char ssid[] = "MacBook di Marco Pagnamenta";
-char password[] = "marcuzio";
 
 // Don't forget to change the WiFi.begin function as well
 
@@ -57,15 +55,15 @@ void setup()
 
   digitalWrite(SWAG_LED, HIGH);
   delay(1000);
-
+  
+  
   // --------- START WIFI
   if(digitalRead(DIP1))
   {
     startWifi(ssid, password);
   }
   // --------- END WIFI
-
-
+  
   motorSetup();
 
   /* Initialize serial communication */
@@ -150,11 +148,8 @@ boolean startWifi(char ssid[], char password[])
 
 
 
-
-
 void loop()
 {
-
   /* Wifi section is managed "best effort" */
 
   if(digitalRead(DIP1))
@@ -164,9 +159,6 @@ void loop()
   }  
 
   delay(100);
-
-  // Serial.println("test");
-
 }
 
 
