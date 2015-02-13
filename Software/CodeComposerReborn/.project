@@ -31,14 +31,35 @@
 			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c</locationURI>
 		</link>
 		<link>
-			<name>startup_ccs.c</name>
+			<name>gpio_if.h</name>
 			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/startup_ccs.c</locationURI>
+			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.h</locationURI>
 		</link>
 		<link>
-			<name>timer_if.c</name>
+			<name>i2c_if.c</name>
 			<type>1</type>
-			<location>C:/ti/CC3200SDK/cc3200-sdk/example/common/timer_if.c</location>
+			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c</locationURI>
+		</link>
+		<link>
+			<name>i2c_if.h</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.h</locationURI>
+		</link>
+		<link>
+			<name>uart_if.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c</locationURI>
+		</link>
+		<link>
+			<name>uart_if.h</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.h</locationURI>
 		</link>
 	</linkedResources>
+	<variableList>
+		<variable>
+			<name>CC3200_SDK_ROOT</name>
+			<value>$%7BPARENT-1-CCS_INSTALL_ROOT%7D/CC3200SDK/cc3200-sdk</value>
+		</variable>
+	</variableList>
 </projectDescription>

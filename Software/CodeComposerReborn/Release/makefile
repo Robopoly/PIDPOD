@@ -8,11 +8,17 @@ CG_TOOL_ROOT := c:/ti/ccsv6/tools/compiler/arm_5.1.6
 
 ORDERED_OBJS += \
 $(GEN_CMDS__FLAG) \
+"./MPU9150.obj" \
+"./Motors.obj" \
 "./gpio_if.obj" \
+"./i2c_if.obj" \
+"./imu_control.obj" \
 "./main.obj" \
+"./odometer.obj" \
+"./pidpod_gpio.obj" \
+"./smartconfig.obj" \
 "./startup_ccs.obj" \
-"./timer_if.obj" \
-"../cc3200v1p32.cmd" \
+"./uart_if.obj" \
 -l"libc.a" \
 
 -include ../makefile.init
@@ -143,8 +149,8 @@ PIDPOD.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "gpio_if.pp" "main.pp" "startup_ccs.pp" "timer_if.pp" 
-	-$(RM) "gpio_if.obj" "main.obj" "startup_ccs.obj" "timer_if.obj" 
+	-$(RM) "MPU9150.pp" "Motors.pp" "gpio_if.pp" "i2c_if.pp" "imu_control.pp" "main.pp" "odometer.pp" "pidpod_gpio.pp" "smartconfig.pp" "startup_ccs.pp" "uart_if.pp" 
+	-$(RM) "MPU9150.obj" "Motors.obj" "gpio_if.obj" "i2c_if.obj" "imu_control.obj" "main.obj" "odometer.obj" "pidpod_gpio.obj" "smartconfig.obj" "startup_ccs.obj" "uart_if.obj" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
