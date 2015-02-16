@@ -52,11 +52,28 @@
 #define ROLE_INVALID            (-5)
 #define SH_GPIO_3                       (3)  /* P58 - Device Mode */
 #define AUTO_CONNECTION_TIMEOUT_COUNT   (50)   /* 5 Sec */
+#define LED_ON_STRING			"12345678901234567890123456789012345"
+
+//
+// Values for below macros shall be modified for setting the 'Ping' properties
+//
+#define PING_INTERVAL       1000    /* In msecs */
+#define PING_TIMEOUT        3000    /* In msecs */
+#define PING_PKT_SIZE       20      /* In bytes */
+#define NO_OF_ATTEMPTS      3
+#define PING_FLAG           0
 
 /* Gloab variables */
 float kp = 10;    // 10 is ok
 float ki = 30;    // 25/30 is ok. Maybe even more
 float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
+const char myssid[10] = "PIDPODlink";
+SlNetAppDhcpServerBasicOpt_t dhcpParams;
+unsigned char outLen = sizeof(SlNetAppDhcpServerBasicOpt_t);
+SlNetCfgIpV4Args_t ipV4;
+
+
+
 unsigned long  g_ulStatus = 0;//SimpleLink Status
 unsigned long  g_ulPingPacketsRecv = 0; //Number of Ping Packets received
 unsigned long  g_ulGatewayIP = 0; //Network Gateway IP address
@@ -75,6 +92,10 @@ volatile unsigned short g_usMCNetworkUstate = 0;
 int g_uiSimplelinkRole = ROLE_INVALID;
 unsigned int g_uiDeviceModeConfig = ROLE_STA; //default is STA mode
 unsigned char g_ucConnectTimeout =0;
+
+/* ??? */
+
+unsigned long  g_ulStaIp = 0;
 
 
 
@@ -276,6 +297,7 @@ static long ConfigureSimpleLinkToDefaultState()
 
     return lRetVal; // Success
 }
+
 
 
 
@@ -503,7 +525,6 @@ void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
 }
 
 
-// EDIT THIS!!
 //*****************************************************************************
 //
 //! This function gets triggered when HTTP Server receives Application
@@ -519,38 +540,58 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
                                SlHttpServerResponse_t *pSlHttpServerResponse)
 {
     unsigned char strLenVal = 0;
+    unsigned char *ptr;
 
+    /* Received void pointer */
     if(!pSlHttpServerEvent || !pSlHttpServerResponse)
     {
         return;
     }
 
+    /* Received either a GET or POST event/request*/
     switch (pSlHttpServerEvent->Event)
     {
+    	/*  GET event */
         case SL_NETAPP_HTTPGETTOKENVALUE_EVENT:
         {
-          unsigned char *ptr;
 
-          ptr = pSlHttpServerResponse->ResponseData.token_value.data;
-          pSlHttpServerResponse->ResponseData.token_value.len = 0;
-          if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token,
-                    strlen((const char *)GET_token)) == 0)
-          {}
+			/* Point to the first char of the response string */
+			ptr = pSlHttpServerResponse->ResponseData.token_value.data;
+			pSlHttpServerResponse->ResponseData.token_value.len = 0;
+
+			/* Look at the kind of token after a GET event/request */
+			if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token,
+					strlen((const char *)GET_token)) == 0)
+			{
+				// TBD send data, fill response string + ??
+				strLenVal = strlen(LED_ON_STRING);
+				memcpy(ptr, LED_ON_STRING, strLenVal);
+				pSlHttpServerResponse->ResponseData.token_value.len = strLenVal;
+				ptr += strLenVal;
+				*ptr = '\0';
+			}
 
         }
         break;
 
+        /*  POST event */
         case SL_NETAPP_HTTPPOSTTOKENVALUE_EVENT:
         {
-          unsigned char *ptr = pSlHttpServerEvent->EventData.httpPostData.token_name.data;
 
-          if(memcmp(ptr, POST_token, strlen((const char *)POST_token)) == 0)
-          {}
+        	/* Point to the first char of the post request string */
+        	ptr = pSlHttpServerEvent->EventData.httpPostData.token_name.data;
+
+        	/* Look at the kind of token after a POST event/request */
+        	if(memcmp(ptr, POST_token, strlen((const char *)POST_token)) == 0)
+        	{
+        		// TBD Do something
+        	}
 
         }
-          break;
+        break;
+
         default:
-          break;
+        break;
     }
 }
 
@@ -724,11 +765,12 @@ long ConnectToNetwork()
        {
            //Turn RED LED On
            GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-           MAP_UtilsDelay(40000000);		// 0.5 s
+		   MAP_UtilsDelay(40000000);
 
            //Turn RED LED Off
            GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-           MAP_UtilsDelay(40000000);
+		   MAP_UtilsDelay(40000000);
+
        }
 
     }
@@ -748,11 +790,11 @@ long ConnectToNetwork()
 		{
 			//Turn RED LED On
 			GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-			MAP_UtilsDelay(4000000);			// 50 ms
+			MAP_UtilsDelay(4000000);
 
 			//Turn RED LED Off
 			GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-			MAP_UtilsDelay(4000000);
+		    MAP_UtilsDelay(4000000);
 
 			g_ucConnectTimeout++;
 		}
@@ -798,26 +840,7 @@ long ConnectToNetwork()
 //****************************************************************************
 static void ReadDeviceConfiguration()
 {
-    unsigned int uiGPIOPort;
-    unsigned char pucGPIOPin;
-    unsigned char ucPinValue;
-
-        //Read GPIO
-    GPIO_IF_GetPortNPin(SH_GPIO_3,&uiGPIOPort,&pucGPIOPin);
-    ucPinValue = GPIO_IF_Get(SH_GPIO_3,uiGPIOPort,pucGPIOPin);
-
-        //If Connected to VCC, Mode is AP
-    if(ucPinValue == 1)
-    {
-            //AP Mode
-            g_uiDeviceModeConfig = ROLE_AP;
-    }
-    else
-    {
-            //STA Mode
-            g_uiDeviceModeConfig = ROLE_STA;
-    }
-
+	 g_uiDeviceModeConfig = ROLE_AP;
 }
 
 
@@ -876,13 +899,17 @@ static void HTTPServerTask(void *pvParameters)
     //Handle Async Events
     while(1)
     {
+        /*_u8 len = sizeof(SlNetCfgIpV4Args_t);
+        _u8 dhcpIsOn = 0; // this flag is meaningless on AP/P2P go.
+        SlNetCfgIpV4Args_t ipV4b = {0};
+        sl_NetCfgGet(SL_IPV4_AP_P2P_GO_GET_INFO,&dhcpIsOn,&len,(_u8 *)&ipV4b);*/
 
     }
 }
 
-
 int main(void)
 {
+
 	/* Init board */
 	BoardInit();
 
@@ -904,9 +931,56 @@ int main(void)
     imu_setup();
     set_controller_parameters(kp, ki, kd);
     controller_setup();
-    odometer_controller_setup();      // MUST be the last one called!
+    odometer_controller_setup();      // MUST be the last init called!
+
+    //HTTPServerTask(NULL);
 
 
-	while(1);
+    // http://azug.minpet.unibas.ch/~lukas/bricol/ti_simplelink/resources/swru368.pdf SECTION 10
+
+
+    dhcpParams.lease_time = 1000;
+    dhcpParams.ipv4_addr_start = 0xc0a80102;
+    dhcpParams.ipv4_addr_last = 0xc0a801fe;
+
+
+    sl_Start(NULL,NULL,NULL);
+	MAP_UtilsDelay(8000000);
+
+    // config IP etc
+	ipV4.ipV4 = 0xc0a80101;
+    ipV4.ipV4Mask = 0xFFFFFF00;
+   	ipV4.ipV4Gateway = 0xc0a80101;
+    ipV4.ipV4DnsServer = 0xc0a80101;
+    sl_NetCfgSet(SL_IPV4_AP_P2P_GO_STATIC_ENABLE, 1 ,sizeof(SlNetCfgIpV4Args_t), (unsigned char*) &ipV4);
+
+    sl_WlanSetMode(ROLE_AP);
+
+    // config SSID
+    sl_WlanSet(SL_WLAN_CFG_AP_ID,WLAN_AP_OPT_SSID, strlen(myssid), (unsigned char*) myssid);
+
+    sl_Stop(100);
+    sl_Start(NULL,NULL,NULL);
+
+    // start DHCP server
+    sl_NetAppStop(SL_NET_APP_DHCP_SERVER_ID);
+    sl_NetAppSet(SL_NET_APP_DHCP_SERVER_ID, NETAPP_SET_DHCP_SRV_BASIC_OPT, outLen,(unsigned char*) &dhcpParams);
+    sl_NetAppStart(SL_NET_APP_DHCP_SERVER_ID);
+
+
+    //Stop Internal HTTP Serve
+    long lRetVal = -1;
+    lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
+    ASSERT_ON_ERROR( lRetVal);
+
+    //Start Internal HTTP Server
+    lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
+    ASSERT_ON_ERROR( lRetVal);
+
+
+	while(1)
+	{
+		_SlNonOsMainLoopTask();
+	}
 	//return 0;
 }
