@@ -46,22 +46,7 @@
 #include "odometer.h"
 
 /* Definitions */
-#define APPLICATION_NAME        "HTTP Server"
-#define APPLICATION_VERSION     "1.1.0"
-#define AP_SSID_LEN_MAX         (33)
-#define ROLE_INVALID            (-5)
-#define SH_GPIO_3                       (3)  /* P58 - Device Mode */
-#define AUTO_CONNECTION_TIMEOUT_COUNT   (50)   /* 5 Sec */
 #define LED_ON_STRING			"12345678901234567890123456789012345"
-
-//
-// Values for below macros shall be modified for setting the 'Ping' properties
-//
-#define PING_INTERVAL       1000    /* In msecs */
-#define PING_TIMEOUT        3000    /* In msecs */
-#define PING_PKT_SIZE       20      /* In bytes */
-#define NO_OF_ATTEMPTS      3
-#define PING_FLAG           0
 
 /* Gloab variables */
 float kp = 10;    // 10 is ok
@@ -73,41 +58,24 @@ unsigned char outLen = sizeof(SlNetAppDhcpServerBasicOpt_t);
 SlNetCfgIpV4Args_t ipV4;
 
 
-
 unsigned long  g_ulStatus = 0;//SimpleLink Status
-unsigned long  g_ulPingPacketsRecv = 0; //Number of Ping Packets received
 unsigned long  g_ulGatewayIP = 0; //Network Gateway IP address
 unsigned char  g_ucConnectionSSID[SSID_LEN_MAX+1]; //Connection SSID
 unsigned char  g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
 unsigned char POST_token[] = "__SL_P_ULD";
 unsigned char GET_token[]  = "__SL_G_ULD";
-int g_iSimplelinkRole = ROLE_INVALID;
+unsigned char GET_token_STR[]  = "__SL_G_STR";								// length of the string
+unsigned char GET_token_TIM[]  = "__SL_G_TIM";								// time delay between web refresh
+//unsigned char GET_update_token[]  = "__SL_G_STATUS_UPDATE";
+//unsigned char GET_settings_token[]  = "__SL_G_STATUS_SETTINGS";
 signed int g_uiIpAddress = 0;
-unsigned char g_ucSSID[AP_SSID_LEN_MAX];
-
 
 
 /* Variable related to Connection status */
 volatile unsigned short g_usMCNetworkUstate = 0;
-int g_uiSimplelinkRole = ROLE_INVALID;
 unsigned int g_uiDeviceModeConfig = ROLE_STA; //default is STA mode
 unsigned char g_ucConnectTimeout =0;
 
-/* ??? */
-
-unsigned long  g_ulStaIp = 0;
-
-
-
-// Application specific status/error codes
-typedef enum{
-    // Choosing -0x7D0 to avoid overlap w/ host-driver's error codes
-    LAN_CONNECTION_FAILED = -0x7D0,
-    INTERNET_CONNECTION_FAILED = LAN_CONNECTION_FAILED - 1,
-    DEVICE_NOT_IN_STATION_MODE = INTERNET_CONNECTION_FAILED - 1,
-
-    STATUS_CODE_MAX = -0xBB8
-}e_AppStatusCodes;
 
 /* Globals used by the timer interrupt handler */
 #if defined(ccs)
@@ -134,173 +102,6 @@ static void BoardInit(void)
 
     PRCMCC3200MCUInit();
 }
-
-//*****************************************************************************
-//
-//! \brief This function initializes the application variables
-//!
-//! \param    None
-//!
-//! \return None
-//!
-//*****************************************************************************
-static void InitializeAppVariables()
-{
-    g_ulStatus = 0;
-    g_uiIpAddress = 0;
-}
-
-
-//*****************************************************************************
-//! \brief This function puts the device in its default state. It:
-//!           - Set the mode to STATION
-//!           - Configures connection policy to Auto and AutoSmartConfig
-//!           - Deletes all the stored profiles
-//!           - Enables DHCP
-//!           - Disables Scan policy
-//!           - Sets Tx power to maximum
-//!           - Sets power policy to normal
-//!           - Unregister mDNS services
-//!           - Remove all filters
-//!
-//! \param   none
-//! \return  On success, zero is returned. On error, negative is returned
-//*****************************************************************************
-static long ConfigureSimpleLinkToDefaultState()
-{
-    SlVersionFull   ver = {0};
-    _WlanRxFilterOperationCommandBuff_t  RxFilterIdMask = {0};
-
-    unsigned char ucVal = 1;
-    unsigned char ucConfigOpt = 0;
-    unsigned char ucConfigLen = 0;
-    unsigned char ucPower = 0;
-
-    long lRetVal = -1;
-    long lMode = -1;
-
-    lMode = sl_Start(0, 0, 0);
-    ASSERT_ON_ERROR(lMode);
-
-    // If the device is not in station-mode, try configuring it in station-mode
-    if (ROLE_STA != lMode)
-    {
-        if (ROLE_AP == lMode)
-        {
-            // If the device is in AP mode, we need to wait for this event
-            // before doing anything
-            while(!IS_IP_ACQUIRED(g_ulStatus))
-            {
-#ifndef SL_PLATFORM_MULTI_THREADED
-              _SlNonOsMainLoopTask();
-#endif
-            }
-        }
-
-        // Switch to STA role and restart
-        lRetVal = sl_WlanSetMode(ROLE_STA);
-        ASSERT_ON_ERROR(lRetVal);
-
-        lRetVal = sl_Stop(0xFF);
-        ASSERT_ON_ERROR(lRetVal);
-
-        lRetVal = sl_Start(0, 0, 0);
-        ASSERT_ON_ERROR(lRetVal);
-
-        // Check if the device is in station again
-        if (ROLE_STA != lRetVal)
-        {
-            // We don't want to proceed if the device is not coming up in STA-mode
-            return DEVICE_NOT_IN_STATION_MODE;
-        }
-    }
-
-    // Get the device's version-information
-    ucConfigOpt = SL_DEVICE_GENERAL_VERSION;
-    ucConfigLen = sizeof(ver);
-    lRetVal = sl_DevGet(SL_DEVICE_GENERAL_CONFIGURATION, &ucConfigOpt,
-                                &ucConfigLen, (unsigned char *)(&ver));
-    ASSERT_ON_ERROR(lRetVal);
-
-    UART_PRINT("Host Driver Version: %s\n\r",SL_DRIVER_VERSION);
-    UART_PRINT("Build Version %d.%d.%d.%d.31.%d.%d.%d.%d.%d.%d.%d.%d\n\r",
-    ver.NwpVersion[0],ver.NwpVersion[1],ver.NwpVersion[2],ver.NwpVersion[3],
-    ver.ChipFwAndPhyVersion.FwVersion[0],ver.ChipFwAndPhyVersion.FwVersion[1],
-    ver.ChipFwAndPhyVersion.FwVersion[2],ver.ChipFwAndPhyVersion.FwVersion[3],
-    ver.ChipFwAndPhyVersion.PhyVersion[0],ver.ChipFwAndPhyVersion.PhyVersion[1],
-    ver.ChipFwAndPhyVersion.PhyVersion[2],ver.ChipFwAndPhyVersion.PhyVersion[3]);
-
-    // Set connection policy to Auto + SmartConfig
-    //      (Device's default connection policy)
-    lRetVal = sl_WlanPolicySet(SL_POLICY_CONNECTION,
-                                SL_CONNECTION_POLICY(1, 0, 0, 0, 1), NULL, 0);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Remove all profiles
-    lRetVal = sl_WlanProfileDel(0xFF);
-    ASSERT_ON_ERROR(lRetVal);
-
-
-
-    //
-    // Device in station-mode. Disconnect previous connection if any
-    // The function returns 0 if 'Disconnected done', negative number if already
-    // disconnected Wait for 'disconnection' event if 0 is returned, Ignore
-    // other return-codes
-    //
-    lRetVal = sl_WlanDisconnect();
-    if(0 == lRetVal)
-    {
-        // Wait
-        while(IS_CONNECTED(g_ulStatus))
-        {
-#ifndef SL_PLATFORM_MULTI_THREADED
-              _SlNonOsMainLoopTask();
-#endif
-        }
-    }
-
-    // Enable DHCP client
-    lRetVal = sl_NetCfgSet(SL_IPV4_STA_P2P_CL_DHCP_ENABLE,1,1,&ucVal);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Disable scan
-    ucConfigOpt = SL_SCAN_POLICY(0);
-    lRetVal = sl_WlanPolicySet(SL_POLICY_SCAN , ucConfigOpt, NULL, 0);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Set Tx power level for station mode
-    // Number between 0-15, as dB offset from max power - 0 will set max power
-    ucPower = 0;
-    lRetVal = sl_WlanSet(SL_WLAN_CFG_GENERAL_PARAM_ID,
-            WLAN_GENERAL_PARAM_OPT_STA_TX_POWER, 1, (unsigned char *)&ucPower);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Set PM policy to normal
-    lRetVal = sl_WlanPolicySet(SL_POLICY_PM , SL_NORMAL_POLICY, NULL, 0);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Unregister mDNS services
-    lRetVal = sl_NetAppMDNSUnRegisterService(0, 0);
-    ASSERT_ON_ERROR(lRetVal);
-
-    // Remove  all 64 filters (8*8)
-    memset(RxFilterIdMask.FilterIdMask, 0xFF, 8);
-    lRetVal = sl_WlanRxFilterSet(SL_REMOVE_RX_FILTER, (_u8 *)&RxFilterIdMask,
-                       sizeof(_WlanRxFilterOperationCommandBuff_t));
-    ASSERT_ON_ERROR(lRetVal);
-
-    lRetVal = sl_Stop(SL_STOP_TIMEOUT);
-    ASSERT_ON_ERROR(lRetVal);
-
-    InitializeAppVariables();
-
-    return lRetVal; // Success
-}
-
-
-
-
 
 
 //*****************************************************************************
@@ -559,6 +360,9 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
 			ptr = pSlHttpServerResponse->ResponseData.token_value.data;
 			pSlHttpServerResponse->ResponseData.token_value.len = 0;
 
+
+
+
 			/* Look at the kind of token after a GET event/request */
 			if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token,
 					strlen((const char *)GET_token)) == 0)
@@ -570,6 +374,32 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
 				ptr += strLenVal;
 				*ptr = '\0';
 			}
+
+			else if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token_STR,
+					strlen((const char *)GET_token_STR)) == 0)
+			{
+				// TBD send data, fill response string + ??
+				strLenVal = 1;
+				memcpy(ptr, "5", strLenVal);
+				pSlHttpServerResponse->ResponseData.token_value.len = strLenVal;
+				ptr += strLenVal;
+				*ptr = '\0';
+			}
+
+			else if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token_TIM,
+					strlen((const char *)GET_token_TIM)) == 0)
+			{
+				// TBD send data, fill response string + ??
+				strLenVal = strlen("500");
+				memcpy(ptr, "500", strLenVal);
+				pSlHttpServerResponse->ResponseData.token_value.len = strLenVal;
+				ptr += strLenVal;
+				*ptr = '\0';
+			}
+
+
+
+
 
         }
         break;
@@ -684,228 +514,6 @@ void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
 }
 
 
-
-
-//****************************************************************************
-//
-//!    \brief Connects to the Network in AP or STA Mode - If ForceAP Jumper is
-//!                                             Placed, Force it to AP mode
-//!
-//! \return                        0 on success else error code
-//
-//****************************************************************************
-long ConnectToNetwork()
-{
-    char ucAPSSID[32];
-    unsigned short len, config_opt;
-    long lRetVal = -1;
-
-    // staring simplelink
-    g_uiSimplelinkRole =  sl_Start(NULL,NULL,NULL);
-
-    // Device is not in STA mode and Force AP Jumper is not Connected
-    //- Switch to STA mode
-    if(g_uiSimplelinkRole != ROLE_STA && g_uiDeviceModeConfig == ROLE_STA )
-    {
-        //Switch to STA Mode
-        lRetVal = sl_WlanSetMode(ROLE_STA);
-        ASSERT_ON_ERROR(lRetVal);
-
-        lRetVal = sl_Stop(SL_STOP_TIMEOUT);
-
-        g_usMCNetworkUstate = 0;
-        g_uiSimplelinkRole =  sl_Start(NULL,NULL,NULL);
-    }
-
-    //Device is not in AP mode and Force AP Jumper is Connected -
-    //Switch to AP mode
-    if(g_uiSimplelinkRole != ROLE_AP && g_uiDeviceModeConfig == ROLE_AP )
-    {
-         //Switch to AP Mode
-        lRetVal = sl_WlanSetMode(ROLE_AP);
-        ASSERT_ON_ERROR(lRetVal);
-
-        lRetVal = sl_Stop(SL_STOP_TIMEOUT);
-
-        g_usMCNetworkUstate = 0;
-        g_uiSimplelinkRole =  sl_Start(NULL,NULL,NULL);
-    }
-
-    //No Mode Change Required
-    if(g_uiSimplelinkRole == ROLE_AP)
-    {
-       //waiting for the AP to acquire IP address from Internal DHCP Server
-       while(!IS_IP_ACQUIRED(g_ulStatus))
-       {
-
-       }
-
-       //Stop Internal HTTP Server
-       lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
-       ASSERT_ON_ERROR( lRetVal);
-
-       //Start Internal HTTP Server
-       lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
-       ASSERT_ON_ERROR( lRetVal);
-
-       char iCount=0;
-       //Read the AP SSID
-       memset(ucAPSSID,'\0',AP_SSID_LEN_MAX);
-       len = AP_SSID_LEN_MAX;
-       config_opt = WLAN_AP_OPT_SSID;
-       lRetVal = sl_WlanGet(SL_WLAN_CFG_AP_ID, &config_opt , &len,
-                                              (unsigned char*) ucAPSSID);
-        ASSERT_ON_ERROR(lRetVal);
-
-       Report("\n\rDevice is in AP Mode, Please Connect to AP [%s] and"
-          "type [mysimplelink.net] in the browser \n\r",ucAPSSID);
-
-       //Blink LED 3 times to Indicate AP Mode
-       for(iCount=0;iCount<3;iCount++)
-       {
-           //Turn RED LED On
-           GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-		   MAP_UtilsDelay(40000000);
-
-           //Turn RED LED Off
-           GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-		   MAP_UtilsDelay(40000000);
-
-       }
-
-    }
-    else
-    {
-        //Stop Internal HTTP Server
-        lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
-        ASSERT_ON_ERROR( lRetVal);
-
-        //Start Internal HTTP Server
-        lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
-        ASSERT_ON_ERROR( lRetVal);
-
-		//waiting for the device to Auto Connect
-		while ( (!IS_IP_ACQUIRED(g_ulStatus))&&
-			   g_ucConnectTimeout < AUTO_CONNECTION_TIMEOUT_COUNT)
-		{
-			//Turn RED LED On
-			GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-			MAP_UtilsDelay(4000000);
-
-			//Turn RED LED Off
-			GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-		    MAP_UtilsDelay(4000000);
-
-			g_ucConnectTimeout++;
-		}
-		//Couldn't connect Using Auto Profile
-		if(g_ucConnectTimeout == AUTO_CONNECTION_TIMEOUT_COUNT)
-		{
-			//Blink Red LED to Indicate Connection Error
-			GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-
-			CLR_STATUS_BIT_ALL(g_ulStatus);
-
-			Report("Use Smart Config Application to configure the device.\n\r");
-			//Connect Using Smart Config
-			lRetVal = SmartConfigConnect();
-			ASSERT_ON_ERROR(lRetVal);
-
-			//Waiting for the device to Auto Connect
-			while(!IS_IP_ACQUIRED(g_ulStatus))
-			{
-				MAP_UtilsDelay(500);
-			}
-
-		}
-    //Turn RED LED Off
-    GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-    UART_PRINT("\n\rDevice is in STA Mode, Connect to the AP[%s] and type"
-          "IP address [%d.%d.%d.%d] in the browser \n\r",g_ucConnectionSSID,
-          SL_IPV4_BYTE(g_uiIpAddress,3),SL_IPV4_BYTE(g_uiIpAddress,2),
-          SL_IPV4_BYTE(g_uiIpAddress,1),SL_IPV4_BYTE(g_uiIpAddress,0));
-
-    }
-    return SUCCESS;
-}
-
-
-//****************************************************************************
-//
-//!    \brief Read Force AP GPIO and Configure Mode - 1(Access Point Mode)
-//!                                                  - 0 (Station Mode)
-//!
-//! \return                        None
-//
-//****************************************************************************
-static void ReadDeviceConfiguration()
-{
-	 g_uiDeviceModeConfig = ROLE_AP;
-}
-
-
-
-static void HTTPServerTask(void *pvParameters)
-{
-    long lRetVal = -1;
-    InitializeAppVariables();
-
-    //
-    // Following function configure the device to default state by cleaning
-    // the persistent settings stored in NVMEM (viz. connection profiles &
-    // policies, power policy etc)
-    //
-    // Applications may choose to skip this step if the developer is sure
-    // that the device is in its default state at start of applicaton
-    //
-    // Note that all profiles and persistent settings that were done on the
-    // device will be lost
-    //
-    lRetVal = ConfigureSimpleLinkToDefaultState();
-    if(lRetVal < 0)
-    {
-        if (DEVICE_NOT_IN_STATION_MODE == lRetVal)
-            UART_PRINT("Failed to configure the device in its default state\n\r");
-
-        LOOP_FOREVER();
-    }
-
-    UART_PRINT("Device is configured in default state \n\r");
-
-    memset(g_ucSSID,'\0',AP_SSID_LEN_MAX);
-
-    //Read Device Mode Configuration
-    ReadDeviceConfiguration();
-
-    //Connect to Network
-    lRetVal = ConnectToNetwork();
-
-    //Stop Internal HTTP Server
-    lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
-    if(lRetVal < 0)
-    {
-        ERR_PRINT(lRetVal);
-        LOOP_FOREVER();
-    }
-
-    //Start Internal HTTP Server
-    lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
-    if(lRetVal < 0)
-    {
-        ERR_PRINT(lRetVal);
-        LOOP_FOREVER();
-    }
-
-    //Handle Async Events
-    while(1)
-    {
-        /*_u8 len = sizeof(SlNetCfgIpV4Args_t);
-        _u8 dhcpIsOn = 0; // this flag is meaningless on AP/P2P go.
-        SlNetCfgIpV4Args_t ipV4b = {0};
-        sl_NetCfgGet(SL_IPV4_AP_P2P_GO_GET_INFO,&dhcpIsOn,&len,(_u8 *)&ipV4b);*/
-
-    }
-}
 
 int main(void)
 {
