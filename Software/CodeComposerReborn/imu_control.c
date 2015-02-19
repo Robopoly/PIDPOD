@@ -16,14 +16,19 @@
 
 
 /* --------------- Controller constants ----------------- */
-#define PID_ARW 					4.
-#define DT							10000. 	// ?? depends on the interrupt frequency/period. Must be in microseconds, then it could be adjusted to reduce calculation time
 #define IMU_CONTROLLER_STARTUP	 	8000 	// depends on the period. Target period is 100Hz
 #define IMU_CONTROLLER_PRESCALER	100   	// clock frequency is now 800KHz
 
 /* Other constants */
 #define DIP4 15
-
+const float NSAMPLES = 16;
+const float COMPLEMENTARY_GYRO = 0.98;
+const float COMPLEMENTARY_ACC = 0.02;
+const float CPERIOD = 100;
+const float INTEGRAL_ADD = 0.1;
+const float GYRO_NORM = 200;
+const float ACC_NORM = 1000;
+const float PID_ARW = 4;
 
 /* ------------- Library local variables ---------------- */
 float integral = 0;
@@ -53,14 +58,14 @@ void imu_setup(void)
 	// Find accelerometer and gyroscope offset
 	accelerometer = 0;
 	gyro_offset = 0;
-	for(i = 0; i < 16; i++)
+	for(i = 0; i < NSAMPLES; i++)
 	{
-	accelerometer += MPU9150_readSensor_2byte(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
-	gyro_offset += MPU9150_readSensor_2byte(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+	accelerometer += (float)MPU9150_readSensor_2byte(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H);
+	gyro_offset += (float)MPU9150_readSensor_2byte(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
 	}
 	// average
-	upright_value_accelerometer = accelerometer/16;
-	gyro_offset /= 16;
+	upright_value_accelerometer = accelerometer/NSAMPLES;
+	gyro_offset /= NSAMPLES;
 }
 
 
@@ -92,8 +97,8 @@ control loop */
 void read_segway_imu(void)
 {
 	upright_value_accelerometer = get_accelerometer_offset();
-	acc_reading = -(MPU9150_readSensor_2byte(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / 1000;
-  	gyro_angle = (MPU9150_readSensor_2byte(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / 200;
+	acc_reading = -(MPU9150_readSensor_2byte(MPU9150_ACCEL_ZOUT_L, MPU9150_ACCEL_ZOUT_H) - upright_value_accelerometer) / ACC_NORM;
+  	gyro_angle = (MPU9150_readSensor_2byte(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) - gyro_offset) / GYRO_NORM;
 }
 
 
@@ -108,11 +113,11 @@ void ControllerIntHandler(void)
     /* Get sensors */
     read_segway_imu();
   
-  	/* Compute error between desired angle (0) and the real angle */
-  	angle = (angle + gyro_angle * DT / 1000000) * 0.98 + (acc_reading * 0.02);
-  	
+  	/* Compute error between desired angle (0) and the real angle with complementary filter */
+  	angle = (angle + gyro_angle / CPERIOD) * COMPLEMENTARY_GYRO + (acc_reading * COMPLEMENTARY_ACC); // / 100 is the period of the controller in milliseconds
+
   	/* Accumulate integral error */
-  	integral = integral + angle * .1;
+  	integral = integral + angle * INTEGRAL_ADD;
 
   	/* Apply ARW protection */
   	if(integral > PID_ARW)
