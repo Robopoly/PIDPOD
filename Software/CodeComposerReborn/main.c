@@ -541,12 +541,8 @@ int main(void)
     controller_setup();
     odometer_controller_setup();      // MUST be the last init called!
 
-    //HTTPServerTask(NULL);
-
 
     // http://azug.minpet.unibas.ch/~lukas/bricol/ti_simplelink/resources/swru368.pdf SECTION 10
-
-
     dhcpParams.lease_time = 1000;
     dhcpParams.ipv4_addr_start = 0xc0a80102;
     dhcpParams.ipv4_addr_last = 0xc0a801fe;
@@ -590,5 +586,4 @@ int main(void)
 	{
 		_SlNonOsMainLoopTask();
 	}
-	//return 0;
 }
