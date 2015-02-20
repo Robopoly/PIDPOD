@@ -18,9 +18,7 @@
 #define ODOMETER_PRESCALER				50  	// clock frequency is now 1.6 MHz			
 #define ODOMETER_CONTROLLER_STARTUP	 	32000 	// depends on the period. Target period is 10Hz
 #define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz	
-const float KI_ODOMETER	= 10;		// 20 stability limit, 10 is ok
-const float KP_ODOMETER	= 190;	// 200 stability limit, 190/200 is ok
-const float KD_ODOMETER	= 140;	// 300 stability limit, 100/150 is ok
+float Ki_odo,  Kp_odo,Kd_odo;
 const float ODO_ARW		= 12;		// 12 is ok
 
 /* ------------------ Pin definitions ------------------- */
@@ -141,7 +139,7 @@ void OdometerControllerIntHandler(void)
 	distance_delta_old = distance_delta1;
 	
 	/* Here PID controller for horizontal movement */
-	acc_value = acc_value_startup + (float)distance_delta1 * KP_ODOMETER + (float)odo1_total * KI_ODOMETER + (float)acceleration * KD_ODOMETER;
+	acc_value = acc_value_startup + (float)distance_delta1 * Kp_odo + (float)odo1_total * Ki_odo + (float)acceleration * Kd_odo;
 
 	
 	/* ARW for position */
@@ -173,3 +171,12 @@ float get_accelerometer_offset(void)
 {
 	return acc_value;
 }
+
+void set__odo_controller_parameters(float p, float i, float d)
+{
+	Kp_odo = p;
+	Ki_odo = i;
+	Kd_odo = d;
+}
+
+

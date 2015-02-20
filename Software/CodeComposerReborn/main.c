@@ -52,6 +52,12 @@
 float kp = 10;    // 10 is ok
 float ki = 30;    // 25/30 is ok. Maybe even more
 float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
+
+float kp_odo = 10;		// 20 stability limit, 10 is ok
+float ki_odo = 190;	// 200 stability limit, 190/200 is ok
+float kd_odo = 140;	// 300 stability limit, 100/150 is ok
+
+
 const char myssid[10] = "PIDPODlink";
 SlNetAppDhcpServerBasicOpt_t dhcpParams;
 unsigned char outLen = sizeof(SlNetAppDhcpServerBasicOpt_t);
@@ -342,6 +348,8 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
 {
     unsigned char strLenVal = 0;
     unsigned char *ptr;
+    char parameter[6];
+    uint8_t nChar, nParam;
 
     /* Received void pointer */
     if(!pSlHttpServerEvent || !pSlHttpServerResponse)
@@ -412,10 +420,66 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
         	ptr = pSlHttpServerEvent->EventData.httpPostData.token_name.data;
 
         	/* Look at the kind of token after a POST event/request */
+        	/* Here the new PID values are parsed */
         	if(memcmp(ptr, POST_token, strlen((const char *)POST_token)) == 0)
         	{
-        		// TBD Do something
+        		/* Get out token */
+        		for(nChar = 0; nChar < 10; nChar++)
+        			*ptr++;
+        		/* Get parameters, 6 parameters, each with 5 numbers and a random separator "." */
+        		for(nParam = 0; nParam < 6; nParam++)
+        		{
+        			for(nChar = 0; nChar < 6; nChar++)
+        				parameter[nChar] = *ptr++;
+
+        			switch (nParam)
+        			{
+        				case 0:
+        				{
+        					kp = atof(parameter);
+        				}
+        				break;
+
+        				case 1:
+						{
+							ki = atof(parameter);
+						}
+						break;
+
+        				case 2:
+						{
+							kd = atof(parameter);
+						}
+						break;
+
+        				case 3:
+						{
+							kp_odo = atof(parameter);
+						}
+						break;
+
+        				case 4:
+						{
+							ki_odo = atof(parameter);
+						}
+						break;
+
+        				case 5:
+						{
+							kd_odo = atof(parameter);
+						}
+						break;
+
+        				default:
+        				{}
+        					break;
+        			}
+
+        		}
+        	    set_controller_parameters(kp, ki, kd);
+        	    set__odo_controller_parameters(kp_odo, ki_odo, kd_odo);
         	}
+        	/* END controller parameters update event */
 
         }
         break;
@@ -530,6 +594,9 @@ int main(void)
     /* Init I2C */
     I2C_IF_Open(I2C_MASTER_MODE_FST);
 
+    /* Wait for operator */
+    while(readDIP1());
+
     /* Init motors (alongside motor GPIO, timers and interrupt */
     motorSetup();
 
@@ -538,6 +605,8 @@ int main(void)
     /* Init IMU (alongside timers and interrupt */
     imu_setup();
     set_controller_parameters(kp, ki, kd);
+    set__odo_controller_parameters(kp_odo, ki_odo, kd_odo);
+
     controller_setup();
     odometer_controller_setup();      // MUST be the last init called!
 

@@ -20,7 +20,6 @@
 #define IMU_CONTROLLER_PRESCALER	100   	// clock frequency is now 800KHz
 
 /* Other constants */
-#define DIP4 15
 const float NSAMPLES = 16;
 const float COMPLEMENTARY_GYRO = 0.98;
 const float COMPLEMENTARY_ACC = 0.02;

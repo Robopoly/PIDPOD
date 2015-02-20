@@ -16,4 +16,7 @@ void OdometerControllerIntHandler(void);
 /* Return the upright accelerometer value corrected thanks to the odometers */
 float get_accelerometer_offset(void);
 
+void set__odo_controller_parameters(float p, float i, float d);
+
+
 #endif 
