@@ -16,10 +16,10 @@
 /* --------------------- Constants ---------------------- */
 #define ODOMETER_STARTUP	 			4000 	// depends on the period. Target period is 400Hz
 #define ODOMETER_PRESCALER				50  	// clock frequency is now 1.6 MHz			
-#define ODOMETER_CONTROLLER_STARTUP	 	32000 	// depends on the period. Target period is 10Hz
-#define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz	
+#define ODOMETER_CONTROLLER_STARTUP	 	64000 	// depends on the period. Target period is 10Hz (5Hz)
+#define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz
 float Ki_odo,  Kp_odo,Kd_odo;
-const float ODO_ARW		= 12;		// 12 is ok
+const float ODO_ARW		= 20;		// 12 is ok
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 
@@ -133,11 +133,11 @@ void OdometerControllerIntHandler(void)
     /* Compute advance between two steps */
 	distance_delta1 = odo1_total - odo1_total_old;
 	odo1_total_old = odo1_total;
-	
+
 	/* Compute acceleration */
 	acceleration = distance_delta1 - distance_delta_old;
 	distance_delta_old = distance_delta1;
-	
+
 	/* Here PID controller for horizontal movement */
 	acc_value = acc_value_startup + (float)distance_delta1 * Kp_odo + (float)odo1_total * Ki_odo + (float)acceleration * Kd_odo;
 
@@ -153,7 +153,7 @@ void OdometerControllerIntHandler(void)
 		odo1_total = -ODO_ARW;
 		odo1_total_old = -ODO_ARW;
 	}
-	
+
 	/* LED blink */
 	if(debug)
 	{

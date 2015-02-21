@@ -49,13 +49,13 @@
 #define LED_ON_STRING			"12345678901234567890123456789012345"
 
 /* Gloab variables */
-float kp = 10;    // 10 is ok
-float ki = 30;    // 25/30 is ok. Maybe even more
+float kp = 20;    // 10 is ok
+float ki = 25;    // 25/30 is ok. Maybe even more
 float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
 
-float kp_odo = 10;		// 20 stability limit, 10 is ok
-float ki_odo = 190;	// 200 stability limit, 190/200 is ok
-float kd_odo = 140;	// 300 stability limit, 100/150 is ok
+float kp_odo = 100;		// 20 stability limit, 10 is ok
+float ki_odo = 3;	// 200 stability limit, 190/200 is ok
+float kd_odo = 50;	// 300 stability limit, 100/150 is ok
 
 
 const char myssid[10] = "PIDPODlink";
@@ -364,6 +364,7 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
         case SL_NETAPP_HTTPGETTOKENVALUE_EVENT:
         {
 
+
 			/* Point to the first char of the response string */
 			ptr = pSlHttpServerResponse->ResponseData.token_value.data;
 			pSlHttpServerResponse->ResponseData.token_value.len = 0;
@@ -594,8 +595,54 @@ int main(void)
     /* Init I2C */
     I2C_IF_Open(I2C_MASTER_MODE_FST);
 
+    /* Init the internet! */
+    // http://azug.minpet.unibas.ch/~lukas/bricol/ti_simplelink/resources/swru368.pdf SECTION 10
+	dhcpParams.lease_time = 1000;
+	dhcpParams.ipv4_addr_start = 0xc0a80102;
+	dhcpParams.ipv4_addr_last = 0xc0a801fe;
+
+
+	sl_Start(NULL,NULL,NULL);
+	MAP_UtilsDelay(8000000);
+
+	// config IP etc
+	ipV4.ipV4 = 0xc0a80101;
+	ipV4.ipV4Mask = 0xFFFFFF00;
+	ipV4.ipV4Gateway = 0xc0a80101;
+	ipV4.ipV4DnsServer = 0xc0a80101;
+	sl_NetCfgSet(SL_IPV4_AP_P2P_GO_STATIC_ENABLE, 1 ,sizeof(SlNetCfgIpV4Args_t), (unsigned char*) &ipV4);
+
+	sl_WlanSetMode(ROLE_AP);
+
+	// config SSID
+	sl_WlanSet(SL_WLAN_CFG_AP_ID,WLAN_AP_OPT_SSID, strlen(myssid), (unsigned char*) myssid);
+
+	sl_Stop(100);
+	sl_Start(NULL,NULL,NULL);
+
+	// start DHCP server
+	sl_NetAppStop(SL_NET_APP_DHCP_SERVER_ID);
+	sl_NetAppSet(SL_NET_APP_DHCP_SERVER_ID, NETAPP_SET_DHCP_SRV_BASIC_OPT, outLen,(unsigned char*) &dhcpParams);
+	sl_NetAppStart(SL_NET_APP_DHCP_SERVER_ID);
+
+
+	//Stop Internal HTTP Serve
+	long lRetVal = -1;
+	lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
+	ASSERT_ON_ERROR( lRetVal);
+
+	//Start Internal HTTP Server
+	lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
+	ASSERT_ON_ERROR( lRetVal);
+
+	 /* Finished init the internet! */
+
+	setRLED();
+
     /* Wait for operator */
-    while(readDIP1());
+    while(!readDIP1());
+
+    clearRLED();
 
     /* Init motors (alongside motor GPIO, timers and interrupt */
     motorSetup();
@@ -609,46 +656,6 @@ int main(void)
 
     controller_setup();
     odometer_controller_setup();      // MUST be the last init called!
-
-
-    // http://azug.minpet.unibas.ch/~lukas/bricol/ti_simplelink/resources/swru368.pdf SECTION 10
-    dhcpParams.lease_time = 1000;
-    dhcpParams.ipv4_addr_start = 0xc0a80102;
-    dhcpParams.ipv4_addr_last = 0xc0a801fe;
-
-
-    sl_Start(NULL,NULL,NULL);
-	MAP_UtilsDelay(8000000);
-
-    // config IP etc
-	ipV4.ipV4 = 0xc0a80101;
-    ipV4.ipV4Mask = 0xFFFFFF00;
-   	ipV4.ipV4Gateway = 0xc0a80101;
-    ipV4.ipV4DnsServer = 0xc0a80101;
-    sl_NetCfgSet(SL_IPV4_AP_P2P_GO_STATIC_ENABLE, 1 ,sizeof(SlNetCfgIpV4Args_t), (unsigned char*) &ipV4);
-
-    sl_WlanSetMode(ROLE_AP);
-
-    // config SSID
-    sl_WlanSet(SL_WLAN_CFG_AP_ID,WLAN_AP_OPT_SSID, strlen(myssid), (unsigned char*) myssid);
-
-    sl_Stop(100);
-    sl_Start(NULL,NULL,NULL);
-
-    // start DHCP server
-    sl_NetAppStop(SL_NET_APP_DHCP_SERVER_ID);
-    sl_NetAppSet(SL_NET_APP_DHCP_SERVER_ID, NETAPP_SET_DHCP_SRV_BASIC_OPT, outLen,(unsigned char*) &dhcpParams);
-    sl_NetAppStart(SL_NET_APP_DHCP_SERVER_ID);
-
-
-    //Stop Internal HTTP Serve
-    long lRetVal = -1;
-    lRetVal = sl_NetAppStop(SL_NET_APP_HTTP_SERVER_ID);
-    ASSERT_ON_ERROR( lRetVal);
-
-    //Start Internal HTTP Server
-    lRetVal = sl_NetAppStart(SL_NET_APP_HTTP_SERVER_ID);
-    ASSERT_ON_ERROR( lRetVal);
 
 
 	while(1)
