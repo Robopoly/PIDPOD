@@ -31,9 +31,9 @@ WiFiServer server(80);
 #include <imu_control.h>
 #include <odometer.h>
 
-float kp = 10;    // 10 is ok
-float ki = 30;    // 25/30 is ok. Maybe even more
-float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
+float kp = 20;    // 10 is ok
+float ki = 25;    // 25/30 is ok. Maybe even more
+float kd = 0.4;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
 
 // Pin definitions
 #define LED       RED_LED
