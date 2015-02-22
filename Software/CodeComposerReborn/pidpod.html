@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<!--[if lte IE 9 ]> <html class="ie"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html> <!--<![endif]-->
+
+<head>
+<style>
+
+.lightSwitch {
+    background: url("images/demo-lightswitch.jpg") no-repeat scroll 0 -72px rgba(0, 0, 0, 0);    
+    height: 70px;
+    width: 30px;    
+}
+.lightOn {
+    margin-top: -10px; 
+   }
+.lightOff{
+margin-top: 0px;
+}
+.lightOn, .lightOff{
+    
+    cursor:pointer;
+    font-weight:bold;
+}
+
+table
+{
+	width = 250px;
+	border = black 1px;
+}
+
+</style>
+<link rel="stylesheet" type="text/css" href="simple_link.css">
+<script type="text/javascript">
+
+
+	function submitValues(){
+		var HTTPrequest = new XMLHttpRequest();
+		KP_I =  parseFloat(document.getElementById("KP_I").value).toPrecision(5); //we get a string from a float w/ 5 numbers
+		KI_I =  parseFloat(document.getElementById("KI_I").value).toPrecision(5);
+		KD_I =  parseFloat(document.getElementById("KD_I").value).toPrecision(5);
+		KP_II = parseFloat(document.getElementById("KP_II").value).toPrecision(5);
+		KI_II = parseFloat(document.getElementById("KI_II").value).toPrecision(5);
+		KD_II = parseFloat(document.getElementById("KD_II").value).toPrecision(5);
+		data  = "__SL_P_ULD=" + KP_I.toString() + KI_I.toString() + KD_I.toString() + KP_II.toString() + KI_II.toString() + KD_II.toString();
+		//alert("sent: "+data);
+		HTTPrequest.open("POST","No_content", true);
+		HTTPrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		HTTPrequest.setRequestHeader("Content-length", data.length);
+		HTTPrequest.setRequestHeader("Connection", "close");
+		HTTPrequest.send(data);
+	}
+	
+	function updateStatus(){
+		var HTTPrequest = new XMLHttpRequest();
+		HTTPrequest.open("GET","http://mysimplelink.net/update_values.html", true); 
+		HTTPrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		HTTPrequest.setRequestHeader("Content-length", 11);
+		HTTPrequest.setRequestHeader("Connection", "close");
+		HTTPrequest.onreadystatechange = function()
+		{
+			//alert (HTTPrequest.readyState +" "+HTTPrequest.status);
+			//alert(HTTPrequest.responseText);
+			if (HTTPrequest.readyState==4 && HTTPrequest.status==200)
+			{
+				//we will receive 8 values with a width of 10
+				for (i = 0; i < 3; i++){
+					document.getElementById("val"+(i+1)).innerHTML = HTTPrequest.responseText.substring(i*10, i*10 + 10);
+					//setTimeout(updateStatus, 5000); // regular update each 5000 ms does not work as expected
+				}
+				
+			}
+		}
+		HTTPrequest.send("test=update");
+	
+	}
+</script>
+
+</head>
+
+<body class="in-frame" <!--onload="updateStatus()"-->
+
+	<h1>PIDPOD</h1>
+
+	<p> Angle PID controller | Default: KP = 20, KI = 25, KD = 0.5 </p>
+	<table>
+		<tr>
+			<td> <label for="KP_I">KP </label><input type="number" min="0" max="500", step="0.01" value="020.00" id="KP_I"/></td>
+			<td> <label for="KI_I">KI </label><input type="number" min="0" max="500", step="0.01" value="025.00" id="KI_I"/></td>
+			<td> <label for="KD_I">KD </label><input type="number" min="0" max="500", step="0.01" value="000.50" id="KD_I"/></td>
+		</tr>
+	</table>
+	
+	<p> Speed PID controller | Default: KP = 100, KI = 2, KD = 50 </p>
+	<table>
+			<td> <label for="KP_II">KP </label><input type="number" min="0" max="500", step="0.01" value="100.00" id="KP_II"/></td>
+			<td> <label for="KI_II">KI </label><input type="number" min="0" max="500", step="0.01" value="002.00" id="KI_II"/></td>
+			<td> <label for="KD_II">KD </label><input type="number" min="0" max="500", step="0.01" value="050.00" id="KD_II"/></td>
+		</tr>
+		<tr>
+			<td rowspan="4"> <button onclick="submitValues()">submit</button><button onclick="updateStatus()">update</button> </td> 
+		</tr>
+	</table>
+
+	
+	<table>
+		<tr> <th> Distance travelled (cm)</th> 
+			<td id="val1">val1 </td>
+		</tr>
+	</table>
+		
+	<table>
+		<tr> <th> Equilibrium point (unitless) </th> 
+			<td id="val2">val2 </td>
+		</tr>
+	</table>
+	
+	<table>
+		<tr> <th> Distance from equilibrium point (unitless) </th> 
+			<td id="val3">val3 </td>
+		</tr>
+	</table>
+	
+</body>
+</html>

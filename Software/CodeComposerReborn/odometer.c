@@ -19,7 +19,10 @@
 #define ODOMETER_CONTROLLER_STARTUP	 	64000 	// depends on the period. Target period is 10Hz (5Hz)
 #define ODOMETER_CONTROLLER_PRESCALER	250   	// clock frequency is now 320 KHz
 float Ki_odo,  Kp_odo,Kd_odo;
-const float ODO_ARW		= 20;		// 12 is ok
+const float ODO_ARW		= 100;		// 12 is ok
+const float ODO_STEPS = 36;
+const float WHEEL_DIAMETER = 18; // more or less, in cm
+const float DISTANCE_MULTIPLIER = 0.5; // 18/36 = 0.5
 
 /* ------------------ Pin definitions ------------------- */
 #define ODO1	14 
@@ -41,7 +44,6 @@ int32_t distance_delta2 = 0;
 int32_t acceleration = 0;
 float acc_value = 0;
 float acc_value_startup;
-
 
 
 /* --------------------- Functions ----------------------- */
@@ -177,6 +179,11 @@ void set__odo_controller_parameters(float p, float i, float d)
 	Kp_odo = p;
 	Ki_odo = i;
 	Kd_odo = d;
+}
+
+float get_odometry(void)
+{
+	return ((float)odo2_total * DISTANCE_MULTIPLIER);
 }
 
 

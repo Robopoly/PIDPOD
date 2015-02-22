@@ -17,4 +17,7 @@ void clearRLED(void);
 void setBLED(void);
 void clearBLED(void);
 
+uint16_t readAISEN(void);
+uint16_t readBISEN(void);
+
 #endif

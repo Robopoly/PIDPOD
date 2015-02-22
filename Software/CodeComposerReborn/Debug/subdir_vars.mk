@@ -9,19 +9,21 @@ CMD_SRCS += \
 C_SRCS += \
 ../MPU9150.c \
 ../Motors.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c \
+../current_monitor.c \
+C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/gpio_if.c \
+C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/i2c_if.c \
 ../imu_control.c \
 ../main.c \
 ../odometer.c \
 ../pidpod_gpio.c \
 ../smartconfig.c \
 ../startup_ccs.c \
-C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c 
+C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/uart_if.c 
 
 OBJS += \
 ./MPU9150.obj \
 ./Motors.obj \
+./current_monitor.obj \
 ./gpio_if.obj \
 ./i2c_if.obj \
 ./imu_control.obj \
@@ -35,6 +37,7 @@ OBJS += \
 C_DEPS += \
 ./MPU9150.pp \
 ./Motors.pp \
+./current_monitor.pp \
 ./gpio_if.pp \
 ./i2c_if.pp \
 ./imu_control.pp \
@@ -48,6 +51,7 @@ C_DEPS += \
 C_DEPS__QUOTED += \
 "MPU9150.pp" \
 "Motors.pp" \
+"current_monitor.pp" \
 "gpio_if.pp" \
 "i2c_if.pp" \
 "imu_control.pp" \
@@ -61,6 +65,7 @@ C_DEPS__QUOTED += \
 OBJS__QUOTED += \
 "MPU9150.obj" \
 "Motors.obj" \
+"current_monitor.obj" \
 "gpio_if.obj" \
 "i2c_if.obj" \
 "imu_control.obj" \
@@ -74,14 +79,15 @@ OBJS__QUOTED += \
 C_SRCS__QUOTED += \
 "../MPU9150.c" \
 "../Motors.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/common/gpio_if.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/common/i2c_if.c" \
+"../current_monitor.c" \
+"C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/gpio_if.c" \
+"C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/i2c_if.c" \
 "../imu_control.c" \
 "../main.c" \
 "../odometer.c" \
 "../pidpod_gpio.c" \
 "../smartconfig.c" \
 "../startup_ccs.c" \
-"C:/ti/CC3200SDK/cc3200-sdk/example/common/uart_if.c" 
+"C:/ti/CC3200SDK_1.0.0/cc3200-sdk/example/common/uart_if.c" 
 
 

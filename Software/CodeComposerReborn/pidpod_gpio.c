@@ -11,6 +11,8 @@
 #include "rom_map.h"
 #include "gpio.h"
 #include "hw_gpio.h"
+#include "hw_adc.h"
+#include "adc.h"
 
 /* Common interface includes */
 #include "gpio_if.h"
@@ -28,6 +30,8 @@ unsigned int port_rled, port_bled, port_dip1, port_dip2, port_dip3, port_dip4, p
 #define DIP1    PIN_07
 #define ODO1    PIN_06
 #define ODO2    PIN_59
+#define AISEN	PIN_57
+#define BISEN	PIN_58
 #define RLEDx   9
 #define BLEDx	6
 #define DIP4x   28
@@ -36,6 +40,8 @@ unsigned int port_rled, port_bled, port_dip1, port_dip2, port_dip3, port_dip4, p
 #define DIP1x   16
 #define ODO1x   15
 #define ODO2x   4
+#define AISENx	ADC_CH_0
+#define BISENx	ADC_CH_1
 
 void InitGPIO(void)
 {
@@ -53,6 +59,13 @@ void InitGPIO(void)
     /* Configure I2C pins */
     MAP_PinTypeI2C(PIN_01, PIN_MODE_1);
     MAP_PinTypeI2C(PIN_02, PIN_MODE_1);
+
+    /* COngifure current sense ADC inputs */
+    MAP_PinTypeADC(AISEN,PIN_MODE_255);
+    MAP_PinTypeADC(BISEN,PIN_MODE_255);
+    MAP_ADCChannelEnable(ADC_BASE, AISENx);
+    MAP_ADCChannelEnable(ADC_BASE, BISENx);
+    MAP_ADCEnable(ADC_BASE);
 
 	/* Set pin mode for DIP and LED pins */
 	MAP_PinTypeGPIO(RLED, PIN_MODE_0, false);
@@ -133,4 +146,34 @@ void setBLED(void)
 void clearBLED(void)
 {
 	GPIO_IF_Set(BLEDx, port_bled, pin_bled, 0);
+}
+
+uint16_t readAISEN(void)
+{
+    unsigned long sample = 0;
+
+    /* ADC measurement */
+    if(MAP_ADCFIFOLvlGet(ADC_BASE, AISENx))
+	{
+		sample = MAP_ADCFIFORead(ADC_BASE, AISENx);
+		sample = sample >> 2;
+		sample &= 0x0FFF;
+	}
+
+	return (uint16_t)(sample);
+}
+
+uint16_t readBISEN(void)
+{
+    unsigned long sample = 0;
+
+    /* ADC measurement */
+	if(MAP_ADCFIFOLvlGet(ADC_BASE, BISENx))
+	{
+		sample = MAP_ADCFIFORead(ADC_BASE, BISENx);
+		sample = sample >> 2;
+		sample &= 0x0FFF;
+	}
+
+	return (uint16_t)(sample);
 }

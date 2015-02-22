@@ -29,5 +29,10 @@ uint8_t angle_acceptable(void);
 /* Return the upright value of the accelerometer. Should only be used at startup */
 float get_accelerometer_default_offset(void);
 
+float get_current1(void);
+
+float get_current2(void);
+
+float get_angle(void);
 
 #endif // _MOTORS_H_

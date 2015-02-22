@@ -28,6 +28,9 @@ const float INTEGRAL_ADD = 0.1;
 const float GYRO_NORM = 200;
 const float ACC_NORM = 1000;
 const float PID_ARW = 4;
+const float ADC_MULTIPLIER = 1.46/4096;//1.46 V is 4096 in the ADC
+const float CURRENT_RELATION = 10000; // from the ADC voltage U = RI, so I = U/R, R = 0.1ohm, hence *10'000 to have the current in mAmpere
+const float ROUNDED_MULTIPLIER = 3.55;
 
 /* ------------- Library local variables ---------------- */
 float integral = 0;
@@ -39,7 +42,8 @@ float gyro_angle;
 float angle = 0;
 int16_t speed = 0;
 float Kp,Ki,Kd;	// again, why not recognized? energia/arduino weird stuff? They should be GLOBAL! :/ Still throws an error during compilation if ki,kp,kd instead of Kp,Ki,Kd
-
+uint16_t current_1;
+uint16_t current_2;
 
 
 
@@ -127,6 +131,10 @@ void ControllerIntHandler(void)
   	/* Compute controller speed */
   	speed = angle * Kp + integral * Ki + gyro_angle * Kd;
   	
+  	/* Sense motor current */
+  	current_1 = readAISEN();
+  	current_2 = readBISEN();
+
   	
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
@@ -182,4 +190,18 @@ float get_accelerometer_default_offset(void)
 	return upright_value_accelerometer;
 }
 
+float get_current1(void)
+{
+	return ((float)current_1 * ROUNDED_MULTIPLIER);
+}
+
+float get_current2(void)
+{
+	return (((float)current_2) * ROUNDED_MULTIPLIER);
+}
+
+float get_angle(void)
+{
+	return angle;
+}
 

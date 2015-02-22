@@ -39,11 +39,13 @@ int8_t speedRight = 0;
 
 #define AIN1	PIN_50
 #define AIN2	PIN_53
-#define BIN1	PIN_63
+//#define BIN1	PIN_63 // NEW VERSION
+#define BIN1	PIN_62
 #define BIN2	PIN_05
 #define AIN1x	0
 #define AIN2x	30
-#define BIN1x	8
+// #define BIN1x	8 // new version
+#define BIN1x	7
 #define BIN2x	14
 #define MOTOR_PRESCALER 8000
 #define MOTOR_OFFSET 400

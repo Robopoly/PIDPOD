@@ -44,6 +44,8 @@
 #include "imu_control.h"
 #include "pidpod_gpio.h"
 #include "odometer.h"
+#include "current_monitor.h"
+
 
 /* Definitions */
 #define LED_ON_STRING			"12345678901234567890123456789012345"
@@ -54,10 +56,10 @@ float ki = 25;    // 25/30 is ok. Maybe even more
 float kd = 0.5;   // 0.4/0.5 is ok, 1 is stability limit with others ok values
 
 float kp_odo = 100;		// 20 stability limit, 10 is ok
-float ki_odo = 3;	// 200 stability limit, 190/200 is ok
+float ki_odo = 2;	// 200 stability limit, 190/200 is ok
 float kd_odo = 50;	// 300 stability limit, 100/150 is ok
 
-
+const float text_multiplier = 1000; // precision of the data sent to the HTML web page
 const char myssid[10] = "PIDPODlink";
 SlNetAppDhcpServerBasicOpt_t dhcpParams;
 unsigned char outLen = sizeof(SlNetAppDhcpServerBasicOpt_t);
@@ -350,6 +352,8 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
     unsigned char *ptr;
     char parameter[6];
     uint8_t nChar, nParam;
+    char data_string[8][10];		// should be enough for a float
+    uint8_t i,j;
 
     /* Received void pointer */
     if(!pSlHttpServerEvent || !pSlHttpServerResponse)
@@ -363,8 +367,6 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
     	/*  GET event */
         case SL_NETAPP_HTTPGETTOKENVALUE_EVENT:
         {
-
-
 			/* Point to the first char of the response string */
 			ptr = pSlHttpServerResponse->ResponseData.token_value.data;
 			pSlHttpServerResponse->ResponseData.token_value.len = 0;
@@ -373,18 +375,51 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
 
 
 			/* Look at the kind of token after a GET event/request */
+			/* Send updates for the desired parameters */
+			/* This part of code is really inefficient */
 			if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token,
 					strlen((const char *)GET_token)) == 0)
 			{
-				// TBD send data, fill response string + ??
-				strLenVal = strlen(LED_ON_STRING);
-				memcpy(ptr, LED_ON_STRING, strLenVal);
-				pSlHttpServerResponse->ResponseData.token_value.len = strLenVal;
-				ptr += strLenVal;
+				/* Params list - Careful, if a value is equal to 0 after *1000 the code should break */
+
+				/*sprintf(data_string[0],"%5.3f",kp);
+				sprintf(data_string[1],"%5.3f",ki);
+				sprintf(data_string[2],"%5.3f",kd);
+				sprintf(data_string[3],"%5.3f",kp_odo);
+				sprintf(data_string[4],"%5.3f",ki_odo);
+				sprintf(data_string[5],"%5.3f",kd_odo);*/ // The process can not follow, pr send in multiple requests
+				sprintf(data_string[2],"%5.3f",get_angle());
+				sprintf(data_string[1],"%5.3f",get_accelerometer_offset());
+				sprintf(data_string[0],"%5.3f",get_odometry());
+
+
+				/* Adds parameters values to string */
+				for(i=0; i<3; i++)
+				{
+					strLenVal = strlen(data_string[i]);
+
+					/* Fill string - Add empty spaces at the end */
+					for(j=(uint8_t)strLenVal; j < 10; j++)
+						data_string[i][j] = ' ';
+
+					//strLenVal = strlen(data_string[i]);
+					strLenVal = 10;
+
+					/* Copy filled string with 16 length to buffer */
+					memcpy(ptr, data_string[i], strLenVal);
+					//memcpy(ptr, LED_ON_STRING, strLenVal);
+					ptr += strLenVal;
+		            pSlHttpServerResponse->ResponseData.token_value.len += strLenVal;
+				}
+
 				*ptr = '\0';
 			}
 
-			else if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token_STR,
+
+
+
+
+			/*else if(memcmp(pSlHttpServerEvent->EventData.httpTokenName.data, GET_token_STR,
 					strlen((const char *)GET_token_STR)) == 0)
 			{
 				// TBD send data, fill response string + ??
@@ -404,7 +439,7 @@ void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pSlHttpServerEvent,
 				pSlHttpServerResponse->ResponseData.token_value.len = strLenVal;
 				ptr += strLenVal;
 				*ptr = '\0';
-			}
+			}*/
 
 
 
