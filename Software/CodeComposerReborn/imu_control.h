@@ -35,4 +35,6 @@ float get_current2(void);
 
 float get_angle(void);
 
+float get_safeAngle(void);
+
 #endif // _MOTORS_H_

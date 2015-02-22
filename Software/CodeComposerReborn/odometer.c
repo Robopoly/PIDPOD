@@ -43,13 +43,16 @@ int32_t distance_delta1 = 0;
 int32_t distance_delta2 = 0;
 int32_t acceleration = 0;
 float acc_value = 0;
-float acc_value_startup;
+float acc_value_startup = 0;
 
 
 /* --------------------- Functions ----------------------- */
 
 
-void odometer_setup(void){														
+void odometer_setup(void){
+
+	acc_value_startup = get_accelerometer_default_offset(); // because strange bug if in previous position..
+
 	// Enable timer A peripheral
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA2, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA2);
@@ -67,10 +70,10 @@ void odometer_setup(void){
   	MAP_TimerEnable(TIMERA2_BASE, TIMER_A);
 }
 
-void odometer_controller_setup(void){	
-	// gets variable
-	acc_value_startup = get_accelerometer_default_offset();
-													
+void odometer_controller_setup(void){
+
+	//acc_value_startup = get_accelerometer_default_offset();
+
 	// Enable timer A peripheral
   	MAP_PRCMPeripheralClkEnable(PRCM_TIMERA3, PRCM_RUN_MODE_CLK);
   	MAP_PRCMPeripheralReset(PRCM_TIMERA3);

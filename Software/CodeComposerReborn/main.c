@@ -679,15 +679,19 @@ int main(void)
 
     clearRLED();
 
-    /* Init motors (alongside motor GPIO, timers and interrupt */
-    motorSetup();
-
-    odometer_setup();
-
     /* Init IMU (alongside timers and interrupt */
     imu_setup();
+
+    /* Init odometers */
+    odometer_setup();
+
     set_controller_parameters(kp, ki, kd);
     set__odo_controller_parameters(kp_odo, ki_odo, kd_odo);
+
+    /* Init motors (alongside motor GPIO, timers and interrupt */
+	motorSetup();
+
+
 
     controller_setup();
     odometer_controller_setup();      // MUST be the last init called!

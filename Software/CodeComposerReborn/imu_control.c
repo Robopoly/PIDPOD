@@ -36,7 +36,7 @@ const float ROUNDED_MULTIPLIER = 3.55;
 float integral = 0;
 float gyro_offset;
 float accelerometer;
-float upright_value_accelerometer;
+float upright_value_accelerometer, safe_restart_acc;
 float acc_reading;
 float gyro_angle;
 float angle = 0;
@@ -68,6 +68,7 @@ void imu_setup(void)
 	}
 	// average
 	upright_value_accelerometer = accelerometer/NSAMPLES;
+	safe_restart_acc = upright_value_accelerometer;
 	gyro_offset /= NSAMPLES;
 }
 
@@ -138,8 +139,8 @@ void ControllerIntHandler(void)
   	
   	
   	/* Apply command value to the motors (as long as the DIP4 is = 1) */
-  	//if(readDIP4() && angle_acceptable())
-  	if(readDIP4())
+  	if(readDIP4() && angle_acceptable())
+  	//if(readDIP4())
     	setSpeed(speed, speed);
 
   	else
@@ -167,20 +168,38 @@ void set_controller_parameters(float p, float i, float d)
 
 uint8_t angle_acceptable(void)
 {
-	static uint8_t unstable_count;
+	static uint8_t unstable_count, not_stable, dipsw2;
 	
 	/* Count how many times the angle of PIDPOD was outside stabilizable range */
-	if((angle > -6) && (angle < 15))
-		unstable_count = 0;
-	else 
-		unstable_count++;
+	if(!not_stable)
+	{
+		if((upright_value_accelerometer > 3500) && (upright_value_accelerometer < 6500))
+			unstable_count = 0;
+		else
+			unstable_count++;
+	}
 		
-	if(unstable_count > 250) // avoid overflow
+	if(unstable_count > 250) // avoid overflow, you never know..
 		unstable_count = 250;
 	
 	/* If for more than 0.5 seconds, return 0*/	
-	if(unstable_count > 50)
+	if(unstable_count > 50 && !not_stable)
+	{
+		dipsw2 = readDIP2();
+		not_stable = 1;
+		unstable_count = 0;
 		return 0;
+	}
+	/* The segway fell over and still there was no operation */
+	else if(not_stable && (dipsw2 == readDIP2()))
+		return 0;
+	/* Operator took up the segway */
+	else if(not_stable && (dipsw2!= readDIP2()))
+	{
+		not_stable = 0;
+		upright_value_accelerometer = get_safeAngle();
+		return 1;
+	}
 	else
 		return 1;
 }
@@ -205,3 +224,7 @@ float get_angle(void)
 	return angle;
 }
 
+float get_safeAngle(void)
+{
+	return safe_restart_acc;
+}
