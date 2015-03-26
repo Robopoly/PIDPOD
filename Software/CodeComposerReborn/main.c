@@ -625,6 +625,7 @@ int main(void)
 	InitGPIO();
 
 	/* Init UART */
+	MAP_PRCMPeripheralClkEnable(PRCM_UARTA0, PRCM_RUN_MODE_CLK);
     InitTerm();
 
     /* Init I2C */

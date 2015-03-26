@@ -168,7 +168,7 @@ void set_controller_parameters(float p, float i, float d)
 
 uint8_t angle_acceptable(void)
 {
-	static uint8_t unstable_count, not_stable, dipsw2;
+	static uint16_t unstable_count, not_stable, dipsw2;
 	
 	/* Count how many times the angle of PIDPOD was outside stabilizable range */
 	if(!not_stable)
